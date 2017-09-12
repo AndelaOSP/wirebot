@@ -28,13 +28,26 @@ incident_category = None
 def events():
     global incident_category
     challenge = request.json.get('challenge')
+    if services.get_sender(request.json) == BOT['user_id']:
+        return Response(response='ok', 
+                    status=200, 
+                    headers={'X-Slack-No-Retry': 1}
+                    )
     if challenge: 
         return Response(json.dumps({'challenge': challenge}))
     elif incident_category is None:
         services.dispatch(request.json)
-        return Response(response='ok', status=200, headers={'X-Slack-No-Retry': 1})
+        return Response(response='ok', 
+                    status=200, 
+                    headers={'X-Slack-No-Retry': 1}
+                    )
     else:
-        print(request.json)
+        services.save_incident(incident_category, request.json)
+        incident_category = None
+        return Response(response='ok', 
+                    status=200, 
+                    headers={'X-Slack-No-Retry': 1}
+                    )
 
 @app.route('/messages', methods=['GET', 'POST'])
 def messages():
@@ -43,7 +56,7 @@ def messages():
     callback_id = data[u'callback_id']
     if callback_id == 'category':
         incident_category = data['actions'][0][u'selected_options'][0][u'value']
-    return Response(response='Describe the incident', 
+    return Response(response='Describe The Incident', 
                     status=200, 
                     headers={'X-Slack-No-Retry': 1}
                     )

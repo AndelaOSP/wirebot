@@ -12,16 +12,12 @@
                 "type": "select",
                 "options": [
                     {
-                        "text": "Red",
-                        "value": "red"
+                        "text": "Theft",
+                        "value": 1
                     },
                     {
-                        "text": "Green",
-                        "value": "green"
-                    },
-                    {
-                        "text": "Yellow",
-                        "value": "yellow"
+                        "text": "Other",
+                        "value": 2
                     }
                 ]
             }
