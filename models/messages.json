@@ -1,0 +1,30 @@
+[
+    {
+        "text": "Select Incident Category",
+        "fallback": "Check your slack version",
+        "color": "#3359DF",
+        "attachment_type": "default",
+        "callback_id": "category",
+        "actions": [
+            {
+                "name": "category_list",
+                "text": "Pick a category...",
+                "type": "select",
+                "options": [
+                    {
+                        "text": "Red",
+                        "value": "red"
+                    },
+                    {
+                        "text": "Green",
+                        "value": "green"
+                    },
+                    {
+                        "text": "Yellow",
+                        "value": "yellow"
+                    }
+                ]
+            }
+        ]
+    }
+]
