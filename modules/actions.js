@@ -12,12 +12,6 @@ const start = (payload, respond) => {
     tempIncidents[userId] = {
       step: 0
     };
-    //workflow
-    // - getDate()
-    // - getLocation()
-    // - getLevel()
-    // - getDescription()
-    // - getConfrimation()
     return respond({'text': "When did the incident occur? (dd-mm-yy)"});
   }
   
@@ -27,16 +21,16 @@ const saveDate = (event) => {
   const userId = event.user;
   const message = event.text;
   tempIncidents[userId].step += 1;
-  // add message validation
+  //TODO: add message validation
   tempIncidents[userId].date = message;
-  // console.log(tempIncidents);
+
 }
 
 const saveLocation = (event) => {
   const userId = event.user;
   const message = event.text;
   tempIncidents[userId].step += 1;
-  //location validation
+  //TODO:location validation
   tempIncidents[userId].location = message;
 
 }
@@ -56,7 +50,7 @@ const saveDescription = (event) => {
 }
 
 const saveIncident = (payload, respond) => {
-  //hit api
+  //TODO: hit api
   const userId = payload.user.id;
   delete tempIncidents[userId];
   return respond({text: 'Incident number: WX5667F'});
