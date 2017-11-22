@@ -31,6 +31,8 @@ const actions = require('./modules/actions');
 
 const dotenv = require('dotenv');
 
+const moment = require('moment');
+
 dotenv.load();
 
 const slackEvents = createSlackEventAdapter(
@@ -245,13 +247,49 @@ slackMessages.action('confirm', (payload, respond) => {
           witnesses: formatted_witnesses
         })
           .then((result) => {
+            let tagged_witnesses = result.data.data.witnesses;
+            tagged_witnesses.map(tagged_witness => {
+              sc.im.list().then(success => {
+                success.ims.map(im => {
+                  if (im.user === tagged_witness.id) {
+                    sc.chat.postMessage(
+                      im.id, '', {
+                        attachments: [
+                          {
+                            'color': '#36a64f',
+                            'pretext': `<@${incidentReporter}> reported an incident and tagged you as a witness`,
+                            'fields': [
+                              {
+                                'title': 'Subject',
+                                'value': result.data.data.subject
+                              },
+                              {
+                                'title': 'Location',
+                                'value': `${result.data.data.Location.name}, ${result.data.data.Location.centre}, ${result.data.data.Location.country}`
+                              },
+                              {
+                                'title': 'Date Occurred',
+                                'value': moment(result.data.data.dateOccurred).format('DD MMMM, YYYY')
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      (/* err, res */) => {}
+                    );
+                  }
+                });
+              }).catch((/* error */) => {});
+            });
+            
             payload.incidentId = result.data.data.id;
             actions.saveIncident(payload, respond);
           })
           .catch(() => {
-            return respond({
+            respond({
               text: 'Something didn\'t quite work. Try again.'
             });
+            confirmIncident(payload.user.id, payload.channel.id);
           });
 
       }).catch((/* error */) => {
