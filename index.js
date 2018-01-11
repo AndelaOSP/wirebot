@@ -4,8 +4,11 @@ const bodyParser = require("body-parser");
 const slackInteractiveMessages = require("@slack/interactive-messages");
 const { createSlackEventAdapter } = require("@slack/events-api");
 const SlackClient = require("@slack/client").WebClient;
-
 const { isLocationValid } = require("./modules/validation/location_validation");
+const {
+  isDateValid,
+  isDateFuture
+} = require("./modules/validation/date_validation");
 
 const {
   initiationMessage,
@@ -50,6 +53,30 @@ slackEvents.on("message", event => {
     const currentStep = actions.tempIncidents[userId].step;
     switch (currentStep) {
       case 0:
+        if (isDateValid(event.text) === false) {
+          sc.chat.postMessage(
+            event.channel,
+            "You cannot report a future incident or Invalid date entered (dd-mm-yy)",
+            (err, res) => {
+              // console.log(res);
+            }
+          );
+
+          break;
+        }
+
+        if (isDateFuture(event.text) === true) {
+          sc.chat.postMessage(
+            event.channel,
+            "You cannot report a future incident or Invalid date entered (dd-mm-yy)",
+            (err, res) => {
+              // console.log(res);
+            }
+          );
+
+          break;
+        }
+
         actions.saveDate(event);
         sc.chat.postMessage(
           event.channel,
