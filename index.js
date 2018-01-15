@@ -6,6 +6,10 @@ const { createSlackEventAdapter } = require("@slack/events-api");
 const SlackClient = require("@slack/client").WebClient;
 const { isLocationValid } = require("./modules/validation/location_validation");
 const {
+  isDescriptionAdequate
+} = require("./modules/validation/description_validation");
+const { isWitnessValid } = require("./modules/validation/witnesses_validation");
+const {
   isDateValid,
   isDateFuture
 } = require("./modules/validation/date_validation");
@@ -108,12 +112,36 @@ slackEvents.on("message", event => {
         console.log("Logic flaw??");
         break;
       case 3:
+        if (isDescriptionAdequate(event.text) === false) {
+          sc.chat.postMessage(
+            event.channel,
+            "Kindly add a bit more description of the incident",
+            (err, res) => {
+              // console.log(res);
+            }
+          );
+
+          break;
+        }
+
         actions.saveDescription(event);
         sc.chat.postMessage(event.channel, "", witnessesMessage, (err, res) => {
           // console.log(res);
         });
         break;
       case 4:
+        if (isWitnessValid(event.text) === false) {
+          sc.chat.postMessage(
+            event.channel,
+            "Kindly ensure all witnesses' Slack handles are in valid format and correct",
+            (err, res) => {
+              // console.log(res);
+            }
+          );
+
+          break;
+        }
+
         actions.saveWitnesses(event);
         confirmIncident(event.user, event.channel);
         break;
