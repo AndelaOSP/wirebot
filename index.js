@@ -57,6 +57,17 @@ slackEvents.on("message", event => {
     const currentStep = actions.tempIncidents[userId].step;
     switch (currentStep) {
       case 0:
+        actions.saveSubject(event);
+        sc.chat.postMessage(
+          event.channel,
+          "When did the incident occur? (dd-mm-yy)",
+          (err, res) => {
+            // console.log(res);
+          }
+        );
+
+        break;
+      case 1:
         if (isDateValid(event.text) === false) {
           sc.chat.postMessage(
             event.channel,
@@ -90,7 +101,7 @@ slackEvents.on("message", event => {
           }
         );
         break;
-      case 1:
+      case 2:
         if (isLocationValid(event.text) === false) {
           sc.chat.postMessage(
             event.channel,
@@ -108,10 +119,10 @@ slackEvents.on("message", event => {
           // console.log(res);
         });
         break;
-      case 2:
+      case 3:
         console.log("Logic flaw??");
         break;
-      case 3:
+      case 4:
         if (isDescriptionAdequate(event.text) === false) {
           sc.chat.postMessage(
             event.channel,
@@ -129,7 +140,7 @@ slackEvents.on("message", event => {
           // console.log(res);
         });
         break;
-      case 4:
+      case 5:
         if (isWitnessValid(event.text) === false) {
           sc.chat.postMessage(
             event.channel,
@@ -145,7 +156,7 @@ slackEvents.on("message", event => {
         actions.saveWitnesses(event);
         confirmIncident(event.user, event.channel);
         break;
-      case 5:
+      case 6:
         break;
     }
   }

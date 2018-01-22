@@ -12,9 +12,18 @@ const start = (payload, respond) => {
     tempIncidents[userId] = {
       step: 0
     };
-    return respond({'text': "When did the incident occur? (dd-mm-yy)"});
+    return respond({'text': "What is the subject of the incident?"});
   }
   
+}
+
+const saveSubject = (event) => {
+  const userId = event.user;
+  const message = event.text;
+  tempIncidents[userId].step += 1;
+  //TODO: add subject validation 
+  tempIncidents[userId].subject = message;
+
 }
 
 const saveDate = (event) => {
@@ -67,6 +76,7 @@ const saveWitnesses = (event) => {
 module.exports = {
   start,
   tempIncidents,
+  saveSubject,
   saveDate,
   saveLocation,
   saveCategory,

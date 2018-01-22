@@ -73,6 +73,11 @@ const getConfirmationMessage = (data) =>
        "callback_id": "confirm",
        "fields": [
            {
+              "title": "Subject",
+              "value": data.subject,
+              "short": false
+           },
+           {
                "title": "Category",
                "value": data.category,
                "short": false
