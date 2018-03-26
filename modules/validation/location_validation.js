@@ -1,7 +1,7 @@
 const isLocationValid = entered_location => {
   entered_location = entered_location.split(',');
 
-  if (entered_location.length < 3) {
+  if (entered_location.length !== 3) {
     return false;
   }
 

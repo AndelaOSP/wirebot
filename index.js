@@ -19,6 +19,8 @@ const {
   isDateFuture
 } = require('./modules/validation/date_validation');
 
+const { levelId } = require('./modules/levels');
+
 const {
   initiationMessage,
   categoryMessage,
@@ -119,7 +121,7 @@ slackEvents.on('message', event => {
       if (isLocationValid(event.text) === false) {
         sc.chat.postMessage(
           event.channel,
-          'The location should at minimum be in the format \'place, city, country\'',
+          'The location should be in the format \'place, city, country\'',
           (/* err, res */) => {
               
           }
@@ -191,29 +193,70 @@ slackMessages.action('category', (payload, respond) => {
 });
 
 slackMessages.action('confirm', (payload, respond) => {
-  sc.users.info(payload.user.id)
-    .then(result => {
-      axios.post(`${apiBaseUrl}/users`, {
-        id: result.user.id,
-        email: result.user.profile.email,
-        name: result.user.profile.real_name_normalized,
-        imageUrl: result.user.profile.image_48
-      })
-        .then((/* result */) => {
-        
-        })
-        .catch((/* error */) => {
-        
-        });
+  const selected = payload.actions[0].value;
 
-    }).catch((/* error */) => {
-      
+  if (selected ==='cancel') {
+    const userId = payload.user.id;
+    delete actions.tempIncidents[userId];
+    return respond({'text': 'Ok, let me know if you change your mind :smiley:'});
+  }
+
+  let incidentReporter = payload.user.id;
+  let incidentSummary = actions.tempIncidents[incidentReporter];
+  let location_array = incidentSummary.location.split(',');
+  let formatted_witnesses_promises = [];  
+
+  if (incidentSummary.witnesses.length) { 
+    let witnesses = incidentSummary.witnesses.split(',');
+    formatted_witnesses_promises = witnesses.map(witness => {
+      let formatted_witness = witness.replace(/<|>|@/g, '').trim();
+
+      return sc.users.info(formatted_witness)
+        .then(result => {
+          return {
+            userId: result.user.id,
+            email: result.user.profile.email,
+            username: result.user.profile.real_name_normalized,
+            imageUrl: result.user.profile.image_48
+          };
+        }).catch((/* error */) => {});
     });
-    
-  actions.saveIncident(payload, respond);
-  return {
-    text: 'Your incident has been logged'
-  };
+  }
+
+  Promise.all(formatted_witnesses_promises).then(formatted_witnesses => {
+    sc.users.info(payload.user.id)
+      .then(result => {
+        axios.post(`${apiBaseUrl}/incidents`, {
+          subject: incidentSummary.subject,
+          description: incidentSummary.description,
+          dateOccurred: incidentSummary.date,
+          levelId: levelId(incidentSummary.category),
+          incidentReporter: {
+            userId: result.user.id,
+            email: result.user.profile.email,
+            username: result.user.profile.real_name_normalized,
+            imageUrl: result.user.profile.image_48
+          },
+          location: {
+            name: location_array[0].trim(),
+            centre: location_array[1].trim(),
+            country: location_array[2].trim()
+          },
+          witnesses: formatted_witnesses
+        })
+          .then((result) => {
+            payload.incidentId = result.data.data.id;
+            actions.saveIncident(payload, respond);
+          })
+          .catch(() => {
+            return respond({
+              text: 'Something didn\'t quite work. Try again.'
+            });
+          });
+
+      }).catch((/* error */) => {
+      });
+  });
 });
 
 slackMessages.action('witnesses', (payload, respond) => {

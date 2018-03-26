@@ -61,7 +61,7 @@ const saveIncident = (payload, respond) => {
   //TODO: hit api
   const userId = payload.user.id;
   delete tempIncidents[userId];
-  return respond({text: 'Incident number: WX5667F'});
+  return respond({text: `Incident reported successfully. Your incident number is \`${payload.incidentId}\``});
 };
 
 const saveWitnesses = (event) => {
