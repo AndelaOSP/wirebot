@@ -2,10 +2,12 @@ const express = require('express');
 const http = require('http');
 const bodyParser = require('body-parser');
 const axios = require('axios');
-const apiBaseUrl = process.env.API_BASE_URL;
+const cron = require('node-cron');
 const slackInteractiveMessages = require('@slack/interactive-messages');
 const { createSlackEventAdapter } = require('@slack/events-api');
 const SlackClient = require('@slack/client').WebClient;
+const dotenv = require('dotenv');
+const moment = require('moment');
 const { isLocationValid } = require('./modules/validation/location_validation');
 const {
   isDescriptionAdequate
@@ -18,9 +20,7 @@ const {
   isDateValid,
   isDateFuture
 } = require('./modules/validation/date_validation');
-
 const { levelId } = require('./modules/levels');
-
 const {
   initiationMessage,
   categoryMessage,
@@ -28,15 +28,14 @@ const {
   getConfirmationMessage
 } = require('./modules/messages');
 const actions = require('./modules/actions');
-
-const dotenv = require('dotenv');
-
-const moment = require('moment');
+const { slackUserLocation } = require('./modules/location_centres');
 
 dotenv.load();
 
 const { logError } = require('./modules/error_logger');
 
+const slackChannels = process.env.SLACK_CHANNELS;
+const apiBaseUrl = process.env.API_BASE_URL;
 const slackEvents = createSlackEventAdapter(
   process.env.SLACK_VERIFICATION_TOKEN
 );
@@ -247,7 +246,8 @@ slackMessages.action('confirm', (payload, respond) => {
             userId: result.user.id,
             email: result.user.profile.email,
             username: result.user.profile.real_name_normalized,
-            imageUrl: result.user.profile.image_48
+            imageUrl: result.user.profile.image_48,
+            witnessLocation: slackUserLocation(result.user.tz)
           };
         }).catch(error => {
           logError(error);
@@ -267,7 +267,8 @@ slackMessages.action('confirm', (payload, respond) => {
             userId: result.user.id,
             email: result.user.profile.email,
             username: result.user.profile.real_name_normalized,
-            imageUrl: result.user.profile.image_48
+            imageUrl: result.user.profile.image_48,
+            reporterLocation: slackUserLocation(result.user.tz)
           },
           location: {
             name: location_array[0].trim(),
@@ -352,6 +353,43 @@ slackMessages.action('witnesses', (payload, respond) => {
   return {
     text: 'Just a sec'
   };
+});
+
+const peopleCultureChannels = slackChannels.split(',');
+
+cron.schedule('0 22 * * 1', function() {
+  peopleCultureChannels.map(peopleCultureChannel => {
+    let formattedPeopleCultureChannel = peopleCultureChannel.trim();
+
+    sc.groups.info(formattedPeopleCultureChannel)
+      .then(groupDetails => {
+        groupDetails.group.members.map(member => {
+          sc.users.info(member)
+            .then(memberDetails => {
+              if (memberDetails.user.is_bot === false) {
+                if (memberDetails.user.deleted === true) {
+                  // POST to delete? API endpoint
+                }
+
+                axios.post(`${apiBaseUrl}/users`, {
+                  userId: memberDetails.user.id,
+                  email: memberDetails.user.profile.email,
+                  username: memberDetails.user.profile.real_name_normalized,
+                  imageUrl: memberDetails.user.profile.image_48,
+                  roleId: 2,
+                  location: slackUserLocation(memberDetails.user.tz)
+                }).catch(err => {
+                  logError(err);
+                });
+              }
+            }).catch(err => {
+              logError(err);
+            });
+        });
+      }).catch(err => {
+        logError(err);
+      });
+  });  
 });
 
 // Start a basic HTTP server
