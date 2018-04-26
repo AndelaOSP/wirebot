@@ -24,20 +24,8 @@ help:
 
 ## Start local development server
 start:
-	${INFO} "Building required docker images"
-	@ docker build -t wire-bot-image .
-	${INFO} "Build Completed successfully"
-	@ echo " "
 	${INFO} "Starting local development server"
-	@ docker run wire-bot-image
-
-clean:
-	${INFO} "Cleaning your local environment"
-	${INFO} "Stopping the docker container"
-	@ docker stop `docker ps -qa -l`
-	${INFO} "Deleting the docker container"
-	@ docker rm `docker ps -qa -l`
-	${SUCCESS} "Done"
+	@ npm run start-dev
 
 # COLORS
 GREEN  := $(shell tput -Txterm setaf 2)
