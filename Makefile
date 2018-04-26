@@ -1,6 +1,4 @@
-PROJECT_NAME ?= wire-frontend
-
-DOCKER_DEV_COMPOSE_FILE := docker/dev/docker-compose.yml
+PROJECT_NAME ?= wire-bot
 
 .PHONY: help
 
@@ -52,9 +50,3 @@ INFO := @bash -c 'printf $(YELLOW); echo "===> $$1"; printf $(NC)' SOME_VALUE
 SUCCESS := @bash -c 'printf $(GREEN); echo "===> $$1"; printf $(NC)' SOME_VALUE
 # Shell Functions
 INFO := @bash -c ' printf $(YELLOW); echo "===> $$1";  printf $(NC)' SOME_VALUE
-
-# check and inspect Logic
-
-INSPECT := $$(docker-compose -p $$1 -f $$2 ps -q $$3 | xargs -I ARGS docker inspect -f "{{ .State.ExitCode }}" ARGS)
-
-CHECK := @bash -c 'if [[ $(INSPECT) -ne 0 ]]; then exit $(INSPECT); fi' VALUE
