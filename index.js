@@ -35,6 +35,8 @@ const moment = require('moment');
 
 dotenv.load();
 
+const { logError } = require('./modules/error_logger');
+
 const slackEvents = createSlackEventAdapter(
   process.env.SLACK_VERIFICATION_TOKEN
 );
@@ -46,8 +48,10 @@ const port = process.env.PORT || 3000;
 
 const confirmIncident = (user, channel) => {
   const data = actions.tempIncidents[user];
-  sc.chat.postMessage(channel, '', getConfirmationMessage(data), (/* err, res */) => {
-    
+  sc.chat.postMessage(channel, '', getConfirmationMessage(data), err => {
+    if (err) {
+      logError(err);
+    }
   });
 };
 
@@ -59,8 +63,10 @@ slackEvents.on('message', event => {
 
   const userId = event.user;
   if (!actions.tempIncidents[userId]) {
-    sc.chat.postMessage(event.channel, '', initiationMessage, (/*err, res */) => {
-      
+    sc.chat.postMessage(event.channel, '', initiationMessage, err => {
+      if (err) {
+        logError(err);
+      }
     });
   } else {
     const currentStep = actions.tempIncidents[userId].step;
@@ -70,7 +76,11 @@ slackEvents.on('message', event => {
         sc.chat.postMessage(
           event.channel,
           'Kindly try to keep incident subject under 10 words',
-          (/* err, res */) => {});
+          err => {
+            if (err) {
+              logError(err);
+            }
+          });
 
         break;
       }
@@ -79,8 +89,10 @@ slackEvents.on('message', event => {
       sc.chat.postMessage(
         event.channel,
         'When did the incident occur? (dd-mm-yy)',
-        (/* err, res */) => {
-            
+        err => {
+          if (err) {
+            logError(err);
+          }
         }
       );
 
@@ -90,8 +102,10 @@ slackEvents.on('message', event => {
         sc.chat.postMessage(
           event.channel,
           'You cannot report a future incident or Invalid date entered (dd-mm-yy)',
-          (/*err, res*/) => {
-              
+          err => {
+            if (err) {
+              logError(err);
+            }
           }
         );
 
@@ -102,8 +116,10 @@ slackEvents.on('message', event => {
         sc.chat.postMessage(
           event.channel,
           'You cannot report a future incident or Invalid date entered (dd-mm-yy)',
-          (/*err, res*/) => {
-              
+          err => {
+            if (err) {
+              logError(err);
+            }
           }
         );
 
@@ -114,8 +130,10 @@ slackEvents.on('message', event => {
       sc.chat.postMessage(
         event.channel,
         'Where did this happen? (place, city, country)',
-        (/*err, res*/) => {
-            
+        err => {
+          if (err) {
+            logError(err);
+          }
         }
       );
       break;
@@ -124,8 +142,10 @@ slackEvents.on('message', event => {
         sc.chat.postMessage(
           event.channel,
           'The location should be in the format \'place, city, country\'',
-          (/* err, res */) => {
-              
+          err => {
+            if (err) {
+              logError(err);
+            }
           }
         );
 
@@ -133,8 +153,10 @@ slackEvents.on('message', event => {
       }
 
       actions.saveLocation(event);
-      sc.chat.postMessage(event.channel, '', categoryMessage, (/* err, res */) => {
-          
+      sc.chat.postMessage(event.channel, '', categoryMessage, err => {
+        if (err) {
+          logError(err);
+        }
       });
       break;
     case 3:
@@ -145,8 +167,10 @@ slackEvents.on('message', event => {
         sc.chat.postMessage(
           event.channel,
           'Kindly add a bit more description of the incident',
-          (/* err, res */) => {
-              
+          err => {
+            if (err) {
+              logError(err);
+            }
           }
         );
 
@@ -154,8 +178,10 @@ slackEvents.on('message', event => {
       }
 
       actions.saveDescription(event);
-      sc.chat.postMessage(event.channel, '', witnessesMessage, (/* err, res */) => {
-          
+      sc.chat.postMessage(event.channel, '', witnessesMessage, err => {
+        if (err) {
+          logError(err);
+        }
       });
       break;
     case 5:
@@ -163,8 +189,10 @@ slackEvents.on('message', event => {
         sc.chat.postMessage(
           event.channel,
           'Kindly ensure all witnesses\' Slack handles are in valid format and correct',
-          (/* err, res */) => {
-              
+          err => {
+            if (err) {
+              logError(err);
+            }
           }
         );
 
@@ -221,7 +249,9 @@ slackMessages.action('confirm', (payload, respond) => {
             username: result.user.profile.real_name_normalized,
             imageUrl: result.user.profile.image_48
           };
-        }).catch((/* error */) => {});
+        }).catch(error => {
+          logError(error);
+        });
     });
   }
 
@@ -275,24 +305,33 @@ slackMessages.action('confirm', (payload, respond) => {
                           }
                         ]
                       },
-                      (/* err, res */) => {}
+                      err => {
+                        if (err) {
+                          logError(err);
+                        }
+                      }
                     );
                   }
                 });
-              }).catch((/* error */) => {});
+              }).catch(error => {
+                logError(error);
+              });
             });
             
             payload.incidentId = result.data.data.id;
             actions.saveIncident(payload, respond);
           })
-          .catch(() => {
+          .catch((err) => {
             respond({
               text: 'Something didn\'t quite work. Try again.'
             });
             confirmIncident(payload.user.id, payload.channel.id);
+
+            logError(err);
           });
 
-      }).catch((/* error */) => {
+      }).catch(error => {
+        logError(error);
       });
   });
 });
