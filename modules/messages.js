@@ -109,7 +109,7 @@ const getConfirmationMessage = (data) =>
             'text': 'Confirm',
             'type': 'button',
             'value': 'confirm',
-            'style': 'ok'
+            'style': 'primary'
           },
           {
             'name': 'cancel',
