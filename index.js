@@ -35,6 +35,7 @@ dotenv.load();
 const { logError } = require('./modules/error_logger');
 
 const slackChannels = process.env.SLACK_CHANNELS;
+const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
 const apiBaseUrl = process.env.API_BASE_URL;
 const slackEvents = createSlackEventAdapter(
   process.env.SLACK_VERIFICATION_TOKEN
@@ -389,7 +390,15 @@ cron.schedule('0 22 * * 1', function() {
       }).catch(err => {
         logError(err);
       });
-  });  
+  });
+
+  axios.post(slackWebhookUrl, {
+    'username': 'wirebot',
+    'icon_emoji': ':slightly_smiling_face:',
+    'text': 'Cron job completed'
+  }).catch(err => {
+    logError(err);
+  });
 });
 
 // Start a basic HTTP server
