@@ -162,7 +162,7 @@ slackEvents.on('message', event => {
       console.log('Logic flaw??'); // eslint-disable-line no-console
       break;
     case 4:
-      if (isDescriptionAdequate(event.text) === false) {
+      if (!isDescriptionAdequate(event.text)) {
         sc.chat.postMessage(
           event.channel,
           'Kindly add a bit more description of the incident',
