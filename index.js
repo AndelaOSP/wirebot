@@ -237,7 +237,7 @@ slackMessages.action('confirm', (payload, respond) => {
   let formatted_witnesses_promises = [];  
 
   if (incidentSummary.witnesses.length) { 
-    let witnesses = incidentSummary.witnesses.split(',');
+    let witnesses = incidentSummary.witnesses.split(' ');
     formatted_witnesses_promises = witnesses.map(witness => {
       let formatted_witness = witness.replace(/<|>|@/g, '').trim();
 
@@ -349,7 +349,7 @@ slackMessages.action('witnesses', (payload, respond) => {
     actions.saveWitnesses(event);
     confirmIncident(payload.user.id, payload.channel.id);
   } else {
-    respond({ text: 'Who are your witnesses? (@witness1, @witness2)' });
+    respond({ text: 'Who are your witnesses? (@witness1 @witness2)' });
   }
   return {
     text: 'Just a sec'

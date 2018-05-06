@@ -1,5 +1,5 @@
 const isWitnessValid = entered_witnesses => {
-  let entered_witnesses_array = entered_witnesses.split(',');
+  let entered_witnesses_array = entered_witnesses.split(' ');
 
   let regex_test_result_array = [];
 
