@@ -164,9 +164,27 @@ slackEvents.on('message', event => {
       break;
     case 4:
       if (!isDescriptionAdequate(event.text)) {
+        if (!actions.tempIncidents[userId].description) {
+          actions.tempIncidents[userId].description = event.text;
+        } else {
+          actions.tempIncidents[userId].description += ' ' + event.text;
+        }
+
+        if (isDescriptionAdequate(actions.tempIncidents[userId].description)) {
+          actions.tempIncidents[userId].step += 1;
+
+          sc.chat.postMessage(event.channel, '', witnessesMessage, err => {
+            if (err) {
+              logError(err);
+            }
+          });
+
+          break;
+        }
+
         sc.chat.postMessage(
           event.channel,
-          'Kindly add a bit more description of the incident',
+          'Kindly add a bit more description of the incident (Minimum: 4 words | simply add onto the above)',
           err => {
             if (err) {
               logError(err);

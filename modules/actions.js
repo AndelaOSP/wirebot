@@ -53,7 +53,12 @@ const saveCategory = (payload, respond) => {
 const saveDescription = (event) => {
   const userId = event.user;
   const message = event.text;
-  tempIncidents[userId].description = message;
+  if (!tempIncidents[userId].description) {
+    tempIncidents[userId].description = message;
+  } else {
+    tempIncidents[userId].description += ' ' + message;
+  }
+  
   tempIncidents[userId].step += 1;
 };
 
