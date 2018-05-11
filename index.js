@@ -29,13 +29,11 @@ const {
 } = require('./modules/messages');
 const actions = require('./modules/actions');
 const { slackUserLocation } = require('./modules/location_centres');
+const { logError } = require('./modules/error_logger');
+const { postPnCMembers } = require('./modules/post_pnc_members');
 
 dotenv.load();
 
-const { logError } = require('./modules/error_logger');
-
-const slackChannels = process.env.SLACK_CHANNELS;
-const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
 const apiBaseUrl = process.env.API_BASE_URL;
 const slackEvents = createSlackEventAdapter(
   process.env.SLACK_VERIFICATION_TOKEN
@@ -374,49 +372,8 @@ slackMessages.action('witnesses', (payload, respond) => {
   };
 });
 
-const peopleCultureChannels = slackChannels.split(',');
-
 cron.schedule('0 22 * * 1', function() {
-  peopleCultureChannels.map(peopleCultureChannel => {
-    let formattedPeopleCultureChannel = peopleCultureChannel.trim();
-
-    sc.groups.info(formattedPeopleCultureChannel)
-      .then(groupDetails => {
-        groupDetails.group.members.map(member => {
-          sc.users.info(member)
-            .then(memberDetails => {
-              if (memberDetails.user.is_bot === false) {
-                if (memberDetails.user.deleted === true) {
-                  // POST to delete? API endpoint
-                }
-
-                axios.post(`${apiBaseUrl}/users`, {
-                  userId: memberDetails.user.id,
-                  email: memberDetails.user.profile.email,
-                  username: memberDetails.user.profile.real_name_normalized,
-                  imageUrl: memberDetails.user.profile.image_48,
-                  roleId: 2,
-                  location: slackUserLocation(memberDetails.user.tz)
-                }).catch(err => {
-                  logError(err);
-                });
-              }
-            }).catch(err => {
-              logError(err);
-            });
-        });
-      }).catch(err => {
-        logError(err);
-      });
-  });
-
-  axios.post(slackWebhookUrl, {
-    'username': 'wirebot',
-    'icon_emoji': ':slightly_smiling_face:',
-    'text': 'Cron job completed'
-  }).catch(err => {
-    logError(err);
-  });
+  postPnCMembers();
 });
 
 // Start a basic HTTP server
