@@ -2,12 +2,11 @@ version: 2
 machine:
   environment:
 jobs:
-  build:
+  deploy:
     docker:
       - image: circleci/node:9.8.0
         environment:
-          GOOGLE_PROJECT_ID: bench-projects
-          GOOGLE_COMPUTE_ZONE: europe-west1-b
+          PROJECT_NAME: wire-bot
     steps:
       - checkout
       - setup_remote_docker
@@ -19,10 +18,11 @@ workflows:
   version: 2
   build-deploy:
     jobs:
-      - build:
+      - deploy:
           filters:
             branches:
               only:
                 - master
                 - staging
+
 
