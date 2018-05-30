@@ -266,6 +266,10 @@ slackMessages.action('confirm', (payload, respond) => {
     return respond({'text': 'Ok, let me know if you change your mind :smiley:'});
   }
 
+  respond({
+    text: 'Just a sec'
+  });
+
   let incidentReporter = payload.user.id;
   let incidentSummary = actions.tempIncidents[incidentReporter];
   let location_array = incidentSummary.location.split(',');
