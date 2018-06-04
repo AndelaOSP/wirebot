@@ -79,6 +79,7 @@ To test a new branch prior to merging a pull request:
 - Start the bot server and tunnel the port as shown above under **Run WIREBOT**
 - Change the `Request URLs` for `Interactive Components` and `Event Subscriptions` to the new SSL secured url provided by **Ngrok**
 - Communicate with the bot via Slack to test out the new feature(s)
+- **_Testing framework setup in progress_**
 
 # Authors
 - [Ian King'ori](https://github.com/andela-ik)
