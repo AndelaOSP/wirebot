@@ -29,8 +29,8 @@ describe('Validations:', () => {
 
   describe('Description:', () => {
     it('should validate that words in description is greater than 3', () => {
-      expect(isDescriptionAdequate('hello world')).false;
-      expect(isDescriptionAdequate('hello dolly world hello')).true;
+      expect(isDescriptionAdequate('A short description')).false;
+      expect(isDescriptionAdequate('I had a altercation with Audu today')).true;
     });
   });
 
