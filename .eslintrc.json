@@ -1,28 +1,27 @@
 {
-    "env": {
-        "es6": true,
-        "node": true
-    },
-    "extends": "eslint:recommended",
-    "parserOptions": {
-        "sourceType": "module"
-    },
-    "rules": {
-        "indent": [
-            "error",
-            2
-        ],
-        "linebreak-style": [
-            "error",
-            "unix"
-        ],
-        "quotes": [
-            "error",
-            "single"
-        ],
-        "semi": [
-            "error",
-            "always"
-        ]
-    }
+  "env": {
+    "es6": true,
+    "node": true
+  },
+  "extends": "eslint:recommended",
+  "parserOptions": {
+    "sourceType": "module"
+  },
+  "rules": {
+    "indent": ["error", 2],
+    "linebreak-style": ["error", "unix"],
+    "quotes": ["error", "single"],
+    "semi": ["error", "always"],
+    "no-var": "error",
+    "space-before-function-paren": [
+      "error",
+      { "anonymous": "always", "named": "always", "asyncArrow": "always" }
+    ],
+    "comma-spacing": ["error", { "before": false, "after": true }],
+    "prefer-arrow-callback":"warn",
+    "semi-spacing": ["error", {"before": false, "after": true}],
+    "no-multiple-empty-lines": ["error", { "max": 1, "maxEOF": 0 }],
+    "key-spacing": ["error", { "beforeColon": false, "afterColon": true }],
+    "no-mixed-spaces-and-tabs": "error"
+  }
 }
