@@ -1,42 +1,73 @@
 version: 2
-machine:
-  environment:
+defaults: &defaults
+  working_directory: ~/wirebot
+  docker:
+    - image: circleci/node:latest
 jobs:
-  test:
-      docker:
-        - image: circleci/node:9.8.0
-      steps:
-        - checkout
-        - setup_remote_docker
-        - run:
-            name: Install packages
-            command: npm i
-        - run:
-            name: Run tests
-            command: npm test
-  deploy:
-    docker:
-      - image: circleci/node:9.8.0
-        environment:
-          PROJECT_NAME: wire-bot
+  build:
+    <<: *defaults
     steps:
-      - checkout
       - setup_remote_docker
+      - checkout
+      - restore_cache:
+          keys:
+            - wirebot-dependency-cache-{{ checksum "package-lock.json" }}
       - run:
-        name: Build and deploy application
-        command: chmod +x .circleci/deploy.sh && .circleci/deploy.sh
+          name: Install packages
+          command: npm i
+      - run:
+          name: Setup Code Climate test-reporter
+          command: |
+            curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+            chmod +x ./cc-test-reporter
+      - save_cache:
+          key: wirebot-dependency-cache-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/wirebot/node_modules
+            - ~/wirebot/cc-test-reporter
+  test:
+    <<: *defaults
+    environment:
+      CC_TEST_REPORTER_ID: $CC_TEST_REPORTER_ID # set this in the circleci dash
+    steps:
+      - setup_remote_docker
+      - checkout
+      - restore_cache:
+          keys:
+            - wirebot-dependency-cache-{{ checksum "package-lock.json" }}
+      - run:
+          name: Run tests
+          command: npm test
+      - run:
+          name: Send coverage to Code Climate
+          command: ./cc-test-reporter upload-coverage coverage/lcov.info
+
+  deploy:
+    <<: *defaults
+    environment:
+      PROJECT_NAME: wire-bot
+    steps:
+      - setup_remote_docker
+      - checkout
+      - restore_cache:
+          keys:
+            - wirebot-dependency-cache-{{ checksum "package-lock.json" }}
+      - run:
+          name: Build and deploy application
+          command: chmod +x .circleci/deploy.sh && .circleci/deploy.sh
 workflows:
   version: 2
-  test-deploy:
+  test-coverage-deploy:
     jobs:
-      - test
+      - build
+      - test:
+          requires:
+            - build
       - deploy:
-        requires:
-          - test
-        filters:
-          branches:
-            only:
-              - master
-              - staging
-
-
+          requires:
+            - test
+          filters:
+            branches:
+              only:
+                - master
+                - staging
