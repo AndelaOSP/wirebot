@@ -60,7 +60,7 @@
   },
   "nyc": {
     "all": true,
-    "check-coverage": true,
+    "check-coverage": false,
     "eager": true,
     "require": "@babel/register",
     "cache": true,
