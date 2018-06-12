@@ -24,30 +24,30 @@ const peopleCultureChannels = {
 
 const slackUserLocation = (location) => {
   switch(location) {
-  case 'newYork':
-    return {
-      name: 'Office',
-      centre: 'New York',
-      country: 'USA'
-    };
-  case 'lagos':
-    return {
-      name: 'Office',
-      centre: 'EPIC Tower',
-      country: 'Nigeria'
-    };
-  case 'nairobi':
-    return {
-      name: 'Office',
-      centre: 'St. Catherines',
-      country: 'Kenya'
-    };
-  case 'kampala':
-    return {
-      name: 'Office',
-      centre: 'Kampala',
-      country: 'Uganda'
-    };
+    case 'newYork':
+      return {
+        name: 'Office',
+        centre: 'New York',
+        country: 'USA'
+      };
+    case 'lagos':
+      return {
+        name: 'Office',
+        centre: 'EPIC Tower',
+        country: 'Nigeria'
+      };
+    case 'nairobi':
+      return {
+        name: 'Office',
+        centre: 'St. Catherines',
+        country: 'Kenya'
+      };
+    case 'kampala':
+      return {
+        name: 'Office',
+        centre: 'Kampala',
+        country: 'Uganda'
+      };
   }
 };
 
