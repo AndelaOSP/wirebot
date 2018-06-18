@@ -28,7 +28,7 @@ const categoryMessage = {
       'color': '#5A352D',
       'title': 'What category does the incident belong to?',
       'callback_id': 'category',
-      'actions' : [
+      'actions': [
         {
           'name': 'red',
           'text': 'Red',
@@ -61,6 +61,96 @@ const categoryMessage = {
 
 const getDateMessage = {
   text: 'When did the incident occur? (dd-mm-yy)'
+};
+
+const getLocationMessage = {
+  attachments: [
+    {
+      color: '#5A352D',
+      title: 'Where did this happen?',
+      callback_id: 'incident_location',
+      actions: [
+        {
+          name: 'location',
+          text: 'Select Location...',
+          value: 'location',
+          type: 'select',
+          options: [
+            {
+              text: 'Office, New York, USA',
+              value: 'Office, New York, USA'
+            },
+            {
+              text: 'Office, Epic Tower, Nigeria',
+              value: 'Office, Epic Tower, Nigeria'
+            },
+            {
+              text: 'Office, St. Catherines, Kenya',
+              value: 'Office, St. Catherines, Kenya'
+            },
+            {
+              text: 'Office, Kampala, Uganda',
+              value: 'Office, Kampala, Uganda'
+            },
+            {
+              text: 'Other',
+              value: 'Other'
+            }
+          ]
+        },
+        {
+          name: 'submit',
+          text: 'Next',
+          type: 'button',
+          value: 'submit'
+        }
+      ]
+
+    }
+  ]
+};
+
+const getLocationHandlerMessage = {
+  attachments: [
+    {
+      color: '#5A352D',
+      title: 'Where should this be handled',
+      callback_id: 'location_verifier',
+      actions: [
+        {
+          name: 'select_location',
+          text: 'Select Location...',
+          value: 'location',
+          type: 'select',
+          options: [
+            {
+              text: 'New York',
+              value: 'New York'
+            },
+            {
+              text: 'Lagos',
+              value: 'Lagos'
+            },
+            {
+              text: 'Nairobi',
+              value: 'Nairobi'
+            },
+            {
+              text: 'Kampala',
+              value: 'Kampala'
+            }
+          ]
+        },
+        {
+          name: 'submit',
+          text: 'Next',
+          type: 'button',
+          value: 'submit'
+        }
+      ]
+
+    }
+  ]
 };
 
 const getConfirmationMessage = (data) =>
@@ -103,7 +193,7 @@ const getConfirmationMessage = (data) =>
             'short': false
           }
         ],
-        'actions' : [
+        'actions': [
           {
             'name': 'confirm',
             'text': 'Confirm',
@@ -147,10 +237,11 @@ const witnessesMessage = {
   ],
 };
 
-
 module.exports = {
   initiationMessage: initiate,
   getDateMessage,
+  getLocationMessage,
+  getLocationHandlerMessage,
   getConfirmationMessage,
   categoryMessage,
   witnessesMessage

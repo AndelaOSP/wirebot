@@ -1,0 +1,78 @@
+version: 2
+defaults: &defaults
+  working_directory: ~/wirebot
+  docker:
+    - image: circleci/node:latest
+restoreCache: &restoreCache
+  keys:
+    - wirebot-dependency-cache-{{ checksum "package.json" }}
+jobs:
+  build:
+    <<: *defaults
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - restore_cache:
+          <<: *restoreCache
+      - run:
+          name: Install packages
+          command: if (test ! -d ~/wirebot/node_modules); then npm ci; fi
+      - run:
+          name: Setup Code Climate test-reporter
+          command: |
+            if (test ! -f ~/wirebot/cc-test-reporter); then
+              echo "downloading clode climate test reporter";
+              curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter;
+              chmod +x ./cc-test-reporter;
+            fi
+      - save_cache:
+          key: wirebot-dependency-cache-{{ checksum "package.json" }}
+          paths:
+            - ~/wirebot/node_modules
+            - ~/wirebot/cc-test-reporter
+  test:
+    <<: *defaults
+    steps:
+      - setup_remote_docker
+      - checkout
+      - restore_cache:
+          <<: *restoreCache
+      - run:
+          name: Notify Code Climate of current test
+          command: ./cc-test-reporter before-build
+      - run:
+          name: Run tests
+          command: npm test
+      - run:
+          name: Send coverage to Code Climate
+          command: ./cc-test-reporter after-build upload-coverage -t lcov
+          when: always
+  deploy:
+    <<: *defaults
+    environment:
+      PROJECT_NAME: wirebot
+    steps:
+      - setup_remote_docker
+      - checkout
+      - restore_cache:
+          <<: *restoreCache
+      - run:
+          name: Build and deploy application
+          command: chmod +x .circleci/deploy.sh && .circleci/deploy.sh
+workflows:
+  version: 2
+  build-test-deploy:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
+      - deploy:
+          requires:
+            - test
+          filters:
+            branches:
+              only:
+                - master
+                - staging

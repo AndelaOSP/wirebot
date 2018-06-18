@@ -23,19 +23,19 @@ const {
 const { levelId } = require('./modules/levels');
 const {
   initiationMessage,
-  categoryMessage,
+  getLocationMessage,
+  getLocationHandlerMessage,
   witnessesMessage,
   getConfirmationMessage
 } = require('./modules/messages');
 const actions = require('./modules/actions');
 const { slackUserLocation } = require('./modules/location_centres');
+const { logError } = require('./modules/error_logger');
+const { postPnCMembers } = require('./modules/post_pnc_members');
+const { newIncidentNotifier } = require('./modules/new_incident_notifier');
 
 dotenv.load();
 
-const { logError } = require('./modules/error_logger');
-
-const slackChannels = process.env.SLACK_CHANNELS;
-const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
 const apiBaseUrl = process.env.API_BASE_URL;
 const slackEvents = createSlackEventAdapter(
   process.env.SLACK_VERIFICATION_TOKEN
@@ -71,120 +71,24 @@ slackEvents.on('message', event => {
   } else {
     const currentStep = actions.tempIncidents[userId].step;
     switch (currentStep) {
-    case 0:
-      if (isSubjectAdequate(event.text)) {
-        sc.chat.postMessage(
-          event.channel,
-          'Kindly try to keep incident subject under 10 words',
-          err => {
-            if (err) {
-              logError(err);
-            }
-          });
-
-        break;
-      }
-
-      actions.saveSubject(event);
-      sc.chat.postMessage(
-        event.channel,
-        'When did the incident occur? (dd-mm-yy)',
-        err => {
-          if (err) {
-            logError(err);
-          }
-        }
-      );
-
-      break;
-    case 1:
-      if (isDateValid(event.text) === false) {
-        sc.chat.postMessage(
-          event.channel,
-          'You cannot report a future incident or Invalid date entered (dd-mm-yy)',
-          err => {
-            if (err) {
-              logError(err);
-            }
-          }
-        );
-
-        break;
-      }
-
-      if (isDateFuture(event.text) === true) {
-        sc.chat.postMessage(
-          event.channel,
-          'You cannot report a future incident or Invalid date entered (dd-mm-yy)',
-          err => {
-            if (err) {
-              logError(err);
-            }
-          }
-        );
-
-        break;
-      }
-
-      actions.saveDate(event);
-      sc.chat.postMessage(
-        event.channel,
-        'Where did this happen? (place, city, country)',
-        err => {
-          if (err) {
-            logError(err);
-          }
-        }
-      );
-      break;
-    case 2:
-      if (isLocationValid(event.text) === false) {
-        sc.chat.postMessage(
-          event.channel,
-          'The location should be in the format \'place, city, country\'',
-          err => {
-            if (err) {
-              logError(err);
-            }
-          }
-        );
-
-        break;
-      }
-
-      actions.saveLocation(event);
-      sc.chat.postMessage(event.channel, '', categoryMessage, err => {
-        if (err) {
-          logError(err);
-        }
-      });
-      break;
-    case 3:
-      console.log('Logic flaw??'); // eslint-disable-line no-console
-      break;
-    case 4:
-      if (!isDescriptionAdequate(event.text)) {
-        if (!actions.tempIncidents[userId].description) {
-          actions.tempIncidents[userId].description = event.text;
-        } else {
-          actions.tempIncidents[userId].description += ' ' + event.text;
-        }
-
-        if (isDescriptionAdequate(actions.tempIncidents[userId].description)) {
-          actions.tempIncidents[userId].step += 1;
-
-          sc.chat.postMessage(event.channel, '', witnessesMessage, err => {
-            if (err) {
-              logError(err);
-            }
-          });
+      case 0:
+        if (isSubjectAdequate(event.text)) {
+          sc.chat.postMessage(
+            event.channel,
+            'Kindly try to keep incident subject under 10 words',
+            err => {
+              if (err) {
+                logError(err);
+              }
+            });
 
           break;
         }
 
+        actions.saveSubject(event);
         sc.chat.postMessage(
           event.channel,
-          'Kindly add a bit more description of the incident (Minimum: 4 words | simply add onto the above)',
+          'When did the incident occur? (dd-mm-yy)',
           err => {
             if (err) {
               logError(err);
@@ -193,37 +97,129 @@ slackEvents.on('message', event => {
         );
 
         break;
-      }
+      case 1:
+        if (!isDateValid(event.text) || isDateFuture(event.text)) {
+          sc.chat.postMessage(
+            event.channel,
+            'You cannot report a future incident or Invalid date entered (dd-mm-yy)',
+            err => {
+              if (err) {
+                logError(err);
+              }
+            }
+          );
 
-      actions.saveDescription(event);
-      sc.chat.postMessage(event.channel, '', witnessesMessage, err => {
-        if (err) {
-          logError(err);
+          break;
         }
-      });
-      break;
-    case 5:
-      if (isWitnessValid(event.text) === false) {
+
+        actions.saveDate(event);
         sc.chat.postMessage(
-          event.channel,
-          'Kindly ensure all witnesses\' Slack handles are in valid format and correct',
+          event.channel, '',
+          getLocationMessage,
           err => {
             if (err) {
               logError(err);
             }
           }
         );
-
         break;
-      }
+      case 2:
+      case 4:
+      case 5:
+      case 8:
+      // Disabling responding to typed messages
+        break;
+      case 3:
+        if (isLocationValid(event.text) === false) {
+          sc.chat.postMessage(
+            event.channel,
+            'The location should be in the format \'place, city, country\'',
+            err => {
+              if (err) {
+                logError(err);
+              }
+            }
+          );
 
-      actions.saveWitnesses(event);
-      confirmIncident(event.user, event.channel);
-      break;
-    case 6:
-      break;
+          break;
+        }
+
+        actions.saveTypedLocation(event);
+
+        sc.chat.postMessage(event.channel, '', getLocationHandlerMessage, err => {
+          if (err) {
+            logError(err);
+          }
+        });
+        break;
+      case 6:
+        if (!isDescriptionAdequate(event.text)) {
+          if (!actions.tempIncidents[userId].description) {
+            actions.tempIncidents[userId].description = event.text;
+          } else {
+            actions.tempIncidents[userId].description += ' ' + event.text;
+          }
+
+          if (isDescriptionAdequate(actions.tempIncidents[userId].description)) {
+            actions.tempIncidents[userId].step += 1;
+
+            sc.chat.postMessage(event.channel, '', witnessesMessage, err => {
+              if (err) {
+                logError(err);
+              }
+            });
+
+            break;
+          }
+
+          sc.chat.postMessage(
+            event.channel,
+            'Kindly add a bit more description of the incident (Minimum: 4 words | simply add onto the above)',
+            err => {
+              if (err) {
+                logError(err);
+              }
+            }
+          );
+
+          break;
+        }
+
+        actions.saveDescription(event);
+        sc.chat.postMessage(event.channel, '', witnessesMessage, err => {
+          if (err) {
+            logError(err);
+          }
+        });
+        break;
+      case 7:
+        if (isWitnessValid(event.text) === false) {
+          sc.chat.postMessage(
+            event.channel,
+            'Kindly ensure all witnesses\' Slack handles are in valid format and correct',
+            err => {
+              if (err) {
+                logError(err);
+              }
+            }
+          );
+
+          break;
+        }
+
+        actions.saveWitnesses(event);
+        confirmIncident(event.user, event.channel);
+        break;
     }
   }
+});
+
+slackMessages.action('incident_location', (payload, respond) => {
+  actions.saveSelectedLocation(payload, respond);
+});
+
+slackMessages.action('location_verifier', (payload, respond) => {
+  actions.saveLocationHandler(payload, respond);
 });
 
 slackMessages.action('report', (payload, respond) => {
@@ -249,12 +245,16 @@ slackMessages.action('confirm', (payload, respond) => {
     return respond({'text': 'Ok, let me know if you change your mind :smiley:'});
   }
 
+  respond({
+    text: 'Just a sec'
+  });
+
   let incidentReporter = payload.user.id;
   let incidentSummary = actions.tempIncidents[incidentReporter];
   let location_array = incidentSummary.location.split(',');
-  let formatted_witnesses_promises = [];  
+  let formatted_witnesses_promises = [];
 
-  if (incidentSummary.witnesses.length) { 
+  if (incidentSummary.witnesses.length) {
     let witnesses = incidentSummary.witnesses.split(' ');
     formatted_witnesses_promises = witnesses.map(witness => {
       let formatted_witness = witness.replace(/<|>|@/g, '').trim();
@@ -337,9 +337,10 @@ slackMessages.action('confirm', (payload, respond) => {
                 logError(error);
               });
             });
-            
+
             payload.incidentId = result.data.data.id;
             actions.saveIncident(payload, respond);
+            return newIncidentNotifier(result.data.data, incidentSummary.incidentHandler);
           })
           .catch((err) => {
             respond({
@@ -374,49 +375,8 @@ slackMessages.action('witnesses', (payload, respond) => {
   };
 });
 
-const peopleCultureChannels = slackChannels.split(',');
-
-cron.schedule('0 22 * * 1', function() {
-  peopleCultureChannels.map(peopleCultureChannel => {
-    let formattedPeopleCultureChannel = peopleCultureChannel.trim();
-
-    sc.groups.info(formattedPeopleCultureChannel)
-      .then(groupDetails => {
-        groupDetails.group.members.map(member => {
-          sc.users.info(member)
-            .then(memberDetails => {
-              if (memberDetails.user.is_bot === false) {
-                if (memberDetails.user.deleted === true) {
-                  // POST to delete? API endpoint
-                }
-
-                axios.post(`${apiBaseUrl}/users`, {
-                  userId: memberDetails.user.id,
-                  email: memberDetails.user.profile.email,
-                  username: memberDetails.user.profile.real_name_normalized,
-                  imageUrl: memberDetails.user.profile.image_48,
-                  roleId: 2,
-                  location: slackUserLocation(memberDetails.user.tz)
-                }).catch(err => {
-                  logError(err);
-                });
-              }
-            }).catch(err => {
-              logError(err);
-            });
-        });
-      }).catch(err => {
-        logError(err);
-      });
-  });
-
-  axios.post(slackWebhookUrl, {
-    'username': 'wirebot',
-    'icon_emoji': ':slightly_smiling_face:',
-    'text': 'Cron job completed'
-  }).catch(err => {
-    logError(err);
-  });
+cron.schedule('0 22 * * 1', () => {
+  postPnCMembers();
 });
 
 // Start a basic HTTP server
