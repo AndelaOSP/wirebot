@@ -15,34 +15,44 @@ const logger = require('../logs')
  *
  * @returns {Object} winston log info
  */
-function throwServiceError (error) {
+function logServiceError (error) {
+  const { message, code } = error
+  let logMsg = ''
   if (error.response) {
     const { status, request, request: { res } } = error.response
-    const { method, path, agent: { protocol } } = request
+    const { method, path, agent: { protocol }, headers } = request
     const { httpVersion, headers: { date }, client: { servername } } = res
-    error = `::1 - - [${date}] "${method} ${path} HTTP/${httpVersion}" `
-    error += `${status} - "-" "Wireapi (+${protocol}//${servername})"`
-
-    return logger.error(error)
+    const ua = headers ? headers['user-agent'] : 'Slackbot 1.0'
+    logMsg = `::1 - - [${date}] "${method} ${path} HTTP/${httpVersion}" `
+    logMsg += `${status} - "${message || ''} ${code || ''}" ${ua}"`
+    logMsg += ` - "Wire (+${protocol}//${servername})`
+  } else {
+    const stack = process.env.NODE_ENV === 'development' ? error.stack : ''
+    logMsg = `${error.message} ${error.code || stack}`
   }
-
-  return logger.error(`${error.message} - ${error.code}`)
+  // we return null, end of flow error has been logged.
+  // services need to check if response is null to proceed
+  logger.error(logMsg)
 }
 
 /**
  * Get Andela Office Location Details
  *
- * @param {String} country the country
+ * @param {String} country the country - Nigeria or Kenya or USA
  *
  * @returns {Object} Andela office details
  */
 function getAndelaOffice (country) {
-  const centers = {
-    Nigeria: 'Epic Tower', Kenya: 'ST. Catherines', USA: 'New York'
+  if (!/Nigeria|Kenya|USA/i.test(country)) {
+    throw new RangeError('country should be Nigeria, Kenya or USA')
   }
-  const center = centers[country]
 
-  return { name: 'office', country, center }
+  const centres = {
+    nigeria: 'Epic Tower', kenya: 'ST. Catherines', usa: 'New York'
+  }
+  const centre = centres[country.toLowerCase()]
+
+  return { name: 'office', country, centre }
 }
 
 /**
@@ -53,7 +63,9 @@ function getAndelaOffice (country) {
  * @returns {Object} the slack users location
  */
 function getSlackUserLocation (timezone) {
-  const city = timezone.split('\/')[1] // eslint-disable-line no-useless-escape
+  if (!/^\w+\/\w+$/.test(timezone)) throw new RangeError('Invalid timezone')
+  const city = timezone.split('/')[1]
+
   const locations = {
     New_York: { centre: 'New York', country: 'USA' },
     Algiers: { centre: 'EPIC Tower', country: 'Nigeria' },
@@ -75,7 +87,7 @@ function getSlackUserLocation (timezone) {
  * User Location
  * @typedef {Object} Location
  * @property {string} name - Location Name
- * @property {string} center - Location Center
+ * @property {string} centre - Location Centre
  * @property {string} country - Location Country
  */
 
@@ -101,37 +113,35 @@ function getSlackUserLocation (timezone) {
 /**
  * Format user data to include location and remove extraneous slack fields
  *
- * @param {SlackUser} user the slack user's data
- * @param {Location} location the user's slack location based onn timezone
+ * @param {SlackUser} slackUser the slack user's data
+ * @param {String} pAndCTeam the PandCTeam chosen from the slack dialogs
  *
  * @returns {WireApiUser} the formatted user object
  */
-function formatUserData (user, location) {
+function formatUserData (slackUser, pAndCTeam) {
+  let invalidValue = ''
   const {
-    id, profile: { email, real_name_normalized: username, image_48: imageUrl
-    }, tz
-  } = user
+    id,
+    profile: { email, real_name_normalized: username, image_48: imageUrl },
+    tz
+  } = slackUser
 
-  const data = { userId: id, email, username, imageUrl }
-
-  if (location) {
-    data.reporterLocation = location
-  } else {
-    data.witnessLocation = getSlackUserLocation(tz)
+  if (![id, tz, (pAndCTeam || '')].every((value) => {
+    invalidValue = value
+    return typeof value === 'string'
+  })) {
+    throw new RangeError(`Invalid value ${invalidValue}`)
   }
 
-  return data
-}
+  const user = { userId: id, email, username, imageUrl }
 
-/**
- * Validate Slack Dialog WItness Slack Handles Field
- *
- * @param {String} slackHandles the comma separated witnesses slack handles
- *
- * @returns {Boolean} validity of the handles true or false
- */
-function validateSlackHandles (slackHandles) {
-  return /^@\w+(,\s?@\w+)*?$/.test(slackHandles)
+  if (pAndCTeam) {
+    user.reporterLocation = getAndelaOffice(pAndCTeam)
+  } else {
+    user.witnessLocation = getSlackUserLocation(tz)
+  }
+
+  return user
 }
 
 /**
@@ -142,6 +152,7 @@ function validateSlackHandles (slackHandles) {
  * @returns {Boolean} validity of the date true or false
  */
 function validateDate (date) {
+  if (typeof date !== 'string') throw new RangeError('invalid non-string arg')
   const dateRegex = /^((0[1-9])|([12]\d)|(3[01]))-((0[1-9])|(1[0-2]))-\d{4}$/
   // @TODO might want to also retrict to certain date ranges using moment
   // @TODO error message can be returned here for specificity
@@ -156,15 +167,18 @@ function validateDate (date) {
  * @returns {Boolean} the validity of the location true or false
  */
 function validateLocation (location) {
+  if (typeof location !== 'string') {
+    throw new RangeError('invalid non-string arg')
+  }
+
   return /^(.+,){2}.+$/.test(location.trim())
 }
 
 module.exports = {
-  throwServiceError,
+  logServiceError,
   getAndelaOffice,
   getSlackUserLocation,
   validateDate,
   validateLocation,
-  validateSlackHandles,
   formatUserData
 }

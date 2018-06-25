@@ -35,6 +35,7 @@ function onListening (server) {
   const bind = typeof addr === 'string'
     ? `pipe ${addr}`
     : `port ${addr.port}`
+
   logger.info(`🚧 Wirebot is Listening on ${bind}`)
 }
 
@@ -60,9 +61,9 @@ function onError (error) {
   }
 }
 
+app.use(helmet())
 app.options(setHeadersMiddleware)
 app.use(bodyParser.urlencoded({ extended: false }))
-app.use(helmet())
 app.use(loggingMiddleware)
 app.get('/', botHomeMiddleware)
 app.post('/slack/actions', verifySlackTokenMiddleware, slackImMiddleware)
@@ -78,4 +79,4 @@ if (require.main === module) {
   server.on('listening', onListening.bind(null, server)).on('error', onError)
 }
 
-module.exports = { app, onError, onListening, isDevMode }
+module.exports = { app, server, onError, onListening, isDevMode }

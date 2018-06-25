@@ -1,14 +1,14 @@
 const https = require('https')
 const axios = require('axios').create({
   httpsAgent: new https.Agent({
-    rejectUnauthorized: false
+    rejectUnauthorized: process.env === 'production' || false
   })
 })
 
-const { formatUserData, getAndelaOffice } = require('./utils')
 const { witnessMessage, pAndCMessage } = require('./slack/messages')
 const { getSlackUserProfile, sendSlackMessage } = require('./slack/web_client')
-const { throwServiceError } = require('./utils')
+const { logServiceError } = require('./utils')
+const { formatUserData } = require('./utils')
 
 const { API_URL, PNC_CHANNELS } = process.env
 
@@ -21,14 +21,14 @@ const { API_URL, PNC_CHANNELS } = process.env
  */
 async function notifyPAndChannels (payload) {
   try {
-    const { reporterLocation: { country }, id } = payload
-    const locationRegex = new RegExp(`.+-${country}`, 'i')
-    const channel = locationRegex.exec(PNC_CHANNELS)[0]
-      .replace(`-${country}`, '')
+    const { reporter: [{ location: { country } }] } = payload
+    const channel = PNC_CHANNELS.split(',').find(
+      value => value.toLowerCase().includes(country.toLowerCase())
+    ).replace(`-${country.toLowerCase()}`, '')
 
-    return sendSlackMessage(channel, '', pAndCMessage(id))
+    return sendSlackMessage(channel, '', pAndCMessage(payload))
   } catch (error) {
-    return throwServiceError(error)
+    return logServiceError(error)
   }
 }
 
@@ -36,13 +36,20 @@ async function notifyPAndChannels (payload) {
  * Notify WItnesses On Slack
  *
  * @param {Object} payload the created incident from the wiire api
- * @param {String} witnesses the witnesses from the slack dialog field
  *
  * @returns {Promise} a promise containing the notification response
  */
-async function notifyWitnessesOnSlack (payload, witnesses) {
-  return Promise.all(witnesses.split('_')
-    .map(id => sendSlackMessage(id, '', witnessMessage(payload))))
+async function notifyWitnessesOnSlack (payload) {
+  try {
+    const { witnesses } = payload
+    const witnessIds = witnesses.map(value => value.id)
+
+    return Promise.all(witnessIds.map(
+      id => sendSlackMessage(id, '', witnessMessage(payload))
+    ))
+  } catch (error) {
+    return logServiceError(error)
+  }
 }
 
 /**
@@ -57,10 +64,10 @@ async function sendIncidentToWireApi (payload) {
     const submission = payload.submission
     const { incidentLocation, subject, description, dateOccurred } = submission
     const payloadData = payload.callback_id.replace('_form', '')
-    const [pAndCTeam, statusId, ...witnesses] = payloadData.split('_')
+    const [pAndCTeam, levelId, ...witnesses] = payloadData.split('_')
     const user = await getSlackUserProfile(payload.user.id)
     const location = incidentLocation.split(',').map(value => value.trim())
-    const incidentReporter = formatUserData(user, getAndelaOffice(pAndCTeam))
+    const incidentReporter = formatUserData(user, pAndCTeam)
     const data = {
       subject,
       description,
@@ -70,28 +77,45 @@ async function sendIncidentToWireApi (payload) {
         country: location[2]
       },
       dateOccurred,
-      statusId,
+      levelId,
       incidentReporter
     }
-    //
+
     if (witnesses.length) {
       data.witnesses = await Promise.all(witnesses
-        .map(id => getSlackUserProfile(id).then(formatUserData)))
+        .map(id => getSlackUserProfile(id)
+          .then(slackUser => formatUserData(slackUser))))
+        .then(profiles => profiles.filter(value => value.email))
     }
 
-    // run wire api call to post data
+    // post data to wire api
     const { data: { data: apiResult } } = await axios
       .post(`${API_URL}/api/incidents`, data)
+    // remove if wire api starts returning reporters location instead of Ids
+    apiResult.reporter[0].location = incidentReporter.reporterLocation
 
-    apiResult.witnesses = payload.witnesses
     return apiResult
   } catch (error) {
-    return throwServiceError(error)
+    return logServiceError(error)
   }
+}
+
+/**
+ * Get Incident By Id
+ *
+ * @param {String} id wire inncident id
+ *
+ * @returns {Object} the incident
+ */
+function getIncidentById (id) {
+  return axios.get(`${API_URL}/api/incidents/${id}`)
+    .then(incident => incident)
+    .catch(logServiceError)
 }
 
 module.exports = {
   sendIncidentToWireApi,
   notifyWitnessesOnSlack,
-  notifyPAndChannels
+  notifyPAndChannels,
+  getIncidentById
 }

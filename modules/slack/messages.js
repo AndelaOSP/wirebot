@@ -1,15 +1,41 @@
+const moment = require('moment')
+
+const priorities = ['High', 'Medium', 'Normal']
+const color = { primary: '#36a64f', secondary: '#EEEEEE' }
+const yesNoActions = [
+  {
+    name: 'yes',
+    text: 'Yes',
+    type: 'button',
+    style: 'primary',
+    value: 'yes'
+  },
+  {
+    name: 'no',
+    text: 'No',
+    type: 'button',
+    style: 'danger',
+    value: 'no'
+  }
+]
+const loadingMessage = { text: 'please wait...' }
+const errorMessage = {
+  replace_original: true,
+  delete_original: true,
+  text: 'Something went wrong. Please try again.'
+}
 const locationMessage = {
   replace_original: true,
   delete_original: true,
   attachments: [
     {
-      color: '#5A352D',
+      color: color.primary,
       title: 'Which Andela P&C team should handle this?',
       callback_id: 'location',
       actions: [
         {
           name: 'location',
-          text: 'Select Andela P&C location',
+          text: 'Which Andela P&C team should handle this?',
           type: 'select',
           options: [
             {
@@ -30,14 +56,10 @@ const locationMessage = {
     }
   ]
 }
-const errorMessages = {
+const formErrorMessages = {
   dateError: {
     name: 'date',
     error: 'Sorry, this date format is invalid!'
-  },
-  witnessesError: {
-    name: 'witnesses',
-    error: 'Uh-oh. You supplied invalid slack handles!'
   },
   locationError: {
     name: 'incidentLocation',
@@ -50,40 +72,39 @@ const exitMessage = {
   delete_original: true
 }
 
+/**
+ * initiationMessage
+ *
+ * @param {String} greeting user greeting
+ *
+ * @returns {Object} the slack message
+ */
 function initiationMessage (greeting) {
   return {
     attachments: [{
       pretext: greeting,
       title: 'Would you like to report an incident?',
-      color: '#5A352D',
+      color: color.primary,
       callback_id: 'report',
-      actions: [
-        {
-          name: 'yes',
-          text: 'Yes',
-          type: 'button',
-          style: 'primary',
-          value: 'yes'
-        },
-        {
-          name: 'no',
-          text: 'No',
-          type: 'button',
-          style: 'danger',
-          value: 'no'
-        }
-      ]
+      actions: yesNoActions
     }]
   }
 }
 
+/**
+ * Priority Message
+ *
+ * @param {String} location p and c location
+ *
+ * @returns {Object} the slack message
+ */
 function priorityMessage (location) {
   return {
     replace_original: true,
     delete_original: true,
     attachments: [
       {
-        color: '#5A352D',
+        color: color.primary,
         title: 'What priority should we assign to this incident?',
         callback_id: `${location}_priority`,
         actions: [
@@ -113,28 +134,21 @@ function priorityMessage (location) {
   }
 }
 
+/**
+ * Add Witness Message
+ *
+ * @param {String} id the callback id
+ * @param {Boolean} pristine clear witness flag
+ *
+ * @returns {Object} the slack message
+ */
 function addWitnessMessage (id, pristine) {
   // remove duplicate slack ids
   id = Array.from(new Set(id.split('_'))).join('_')
   const slackHandles = pristine ? '' : id.replace(/\w+_\d_/g, '').split('_')
     .map(handle => `<@${handle}>`).join(' ')
   const pretext = slackHandles ? `_you have added_ ${slackHandles}` : ''
-  const actions = [
-    {
-      name: 'yes',
-      text: 'Yes',
-      type: 'button',
-      style: 'primary',
-      value: 'yes'
-    },
-    {
-      name: 'no',
-      text: 'No',
-      type: 'button',
-      style: 'danger',
-      value: 'no'
-    }
-  ]
+  const actions = yesNoActions
 
   if (slackHandles) {
     actions.push({
@@ -160,13 +174,20 @@ function addWitnessMessage (id, pristine) {
   }
 }
 
+/**
+ * Select Witness Message
+ *
+ * @param {String} id slack callback id
+ *
+ * @returns {Object} the slack message
+ */
 function selectWitnessesMessage (id) {
   return {
     replace_original: true,
     delete_original: true,
     attachments: [
       {
-        color: '#5A352D',
+        color: color.primary,
         title: 'Select someone who witnessed this incident.',
         callback_id: `${id}_selectWitness`,
         actions: [
@@ -182,6 +203,13 @@ function selectWitnessesMessage (id) {
   }
 }
 
+/**
+ * Report Form Dialog Message
+ *
+ * @param {String} id the callback Id
+ *
+ * @returns {Object} the slack dialog
+ */
 function reportFormDialog (id) {
   return {
     title: 'Incident Report Form',
@@ -227,72 +255,150 @@ function reportFormDialog (id) {
   }
 }
 
+/**
+ * Get Incident Action Buttons
+ *
+ * @param {Object} id the incident ID
+ *
+ * @returns {Array} of slack action buttons
+ */
+function getIncidentActions (id) {
+  return [
+    {
+      name: 'view',
+      text: 'View Incident On Wire',
+      type: 'button',
+      url: `${process.env.APP_URL}/incidents/${id}`,
+      style: 'primary'
+    },
+    {
+      name: 'status',
+      text: 'Get Incident Status',
+      type: 'button',
+      value: 'status',
+      style: 'danger'
+    }
+  ]
+};
+
+/**
+ * Witness Message
+ *
+ * @param {Object} incident the incident payload from wire-api
+ *
+ * @returns {Object} slack attachment message
+ */
 function witnessMessage (incident) {
-  const {
-    incidentReporter, subject, Location: { name, center, country }, dateOccurred
-  } = incident
+  const { Location: { name, centre, country }, dateOccurred } = incident
 
   return [{
-    pretext: `<@${incidentReporter}> reported an incident and tagged you \
-    as a witness`,
-    color: '#36a64f',
+    pretext: `<@${incident.reporter[0].id}> reported an incident and tagged you\
+ as a witness`,
+    color: color.primary,
     fields: [
       {
         title: 'Subject',
-        value: subject
+        value: incident.subject
       },
       {
         title: 'Location',
-        value: `${name}, ${center}, ${country}`
+        value: `${name}, ${centre}, ${country}`
       },
       {
-        title: 'Date Occurred',
-        value: `<!date^${dateOccurred}^{date} at {time}>`
+        title: 'Date Incident Occurred',
+        value: moment(dateOccurred).format('DD MMMM, YYYY')
       }
     ]
   }]
 }
 
-function pAndCMessage (incidentId) {
+/**
+ * P and C Message
+ *
+ * @param {Object} incident the incident payload from wire-api
+ *
+ * @returns {Object} slack attachment message
+ */
+function pAndCMessage (incident) {
+  const { id, subject, reporter: [{ id: author }], levelId } = incident
+
   return [{
-    pretext: 'New incident reported',
-    color: '#5A352D',
+    pretext: 'New incident on Wire',
+    color: color.secondary,
+    author_name: `Reported by <@${author}>`,
+    title: subject,
+    title_link: `${process.env.APP_URL}/incidents/${id}`,
+    callback_id: `${id}_status`,
     fields: [
       {
         title: 'Incident ID',
-        value: `\`${incidentId}\``
+        value: `${id}`
+      },
+      {
+        title: 'Priority',
+        value: priorities[levelId - 1]
       }
-    ]
+    ],
+    actions: getIncidentActions(id)
   }]
 }
 
+/**
+ * Incident Submission Message
+ *
+ * @param {Object} incident the incident payload from wire-api
+ *
+ * @returns {Object} slack attachment message
+ */
 function incidentSubmittedMessage (incident) {
-  const { incidentId } = incident
+  const { id, subject, levelId } = incident
 
   return {
-    pretext: 'Thank you for reporting this incident.',
-    text: `Your Incident Id is ${incidentId}`,
+    replace_original: true,
+    delete_original: true,
     attachments: [{
-      color: 'D00000',
-      actions: [
+      pretext: 'Thank you for reporting this incident.',
+      color: color.primary,
+      callback_id: `${id}_status`,
+      fields: [
         {
-          name: 'view',
-          text: 'View Incident',
-          type: 'button',
-          style: 'primary',
-          value: 'open'
+          title: 'Incident ID',
+          value: id
         },
         {
-          name: 'status',
-          text: 'Get Incident Status',
-          type: 'button',
-          value: 'status'
+          title: 'Subject',
+          value: `${subject}`
+        },
+        {
+          title: 'Priority',
+          value: priorities[levelId - 1]
         }
-      ]
+      ],
+      actions: getIncidentActions(id)
     }]
   }
 }
 
+/**
+ * Incident Status Message
+ *
+ * @param {String} status the incident status
+ * @returns
+ */
+function statusMessage (status) {
+  return {
+    replace_original: true,
+    delete_original: true,
+    text: `/${status}/`
+  }
+}
+
+/**
+ * Slack Logger Message
+ *
+ * @param {*} text
+ * @returns
+ */
 function loggerMessage (text) {
   return { username: 'wirebot', attachments: [{ color: 'D00000', text }] }
 }
@@ -307,7 +413,10 @@ module.exports = {
   pAndCMessage,
   witnessMessage,
   exitMessage,
-  errorMessages,
+  errorMessage,
+  formErrorMessages,
   incidentSubmittedMessage,
+  statusMessage,
+  loadingMessage,
   loggerMessage
 }

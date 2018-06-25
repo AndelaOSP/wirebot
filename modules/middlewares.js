@@ -2,11 +2,12 @@ const morgan = require('morgan')
 
 const logger = require('../logs')
 const { initiationMessage } = require('./slack/messages')
+const { logServiceError } = require('./utils')
 
-const { ALLOWED_ORIGINS } = process.env
+const { ALLOWED_ORIGINS, API_URL, APP_URL } = process.env
 
 /**
- * Wirebots Logging Middlware
+ * Wirebots Request Logging Middlware
  *
  * @param {Object} req the http request object
  * @param {Object} res the http response object
@@ -15,12 +16,9 @@ const { ALLOWED_ORIGINS } = process.env
  * @returns {Object} the next middleware function
  */
 function loggingMiddleware (req, res, next) {
-  logger.stream = {
-    write: msg => res.statusCode >= 400
-      ? logger.error(msg.trim()) : logger.info(msg.trim())
-  }
-
-  return morgan('combined', { stream: logger.stream })(req, res, next)
+  return morgan('combined', {
+    immediate: true, stream: { write: msg => logger.info(msg.trim()) }
+  })(req, res, next)
 }
 
 /**
@@ -33,8 +31,7 @@ function loggingMiddleware (req, res, next) {
  * @returns {Object} the next middleware function
  */
 function setHeadersMiddleware (req, res) {
-  const allowedOrigins = ALLOWED_ORIGINS
-    ? ALLOWED_ORIGINS.split(',') : [req.headers.origin]
+  const allowedOrigins = [ALLOWED_ORIGINS.split(','), API_URL, APP_URL]
   const allowedOrigin = allowedOrigins.includes(req.headers.origin)
   const headers1 = 'Origin, X-Requested-With, Content-Type, Accept'
   const headers2 = ',Authorization, Access-Control-Allow-Credentials'
@@ -59,11 +56,7 @@ function errorFourZeroFourMiddleware (req, res, next) {
   const error = new Error('Wirebot Route Does Not Exist')
   error.status = 404
 
-  if (res.headersSent) {
-    return next(error)
-  }
-
-  return res.status(404).json({ status: 404, error: error.message })
+  return next(error)
 }
 
 /**
@@ -75,10 +68,24 @@ function errorFourZeroFourMiddleware (req, res, next) {
  *
  * @returns {Object} the error in json
  */
-function httpErrorMiddleware (error, req, res) {
-  const status = error.status || 500
+function httpErrorMiddleware (error, req, res, next) {
+  const { status = 500, message } = error
+  error.response = {
+    status,
+    request: {
+      ...req,
+      path: req.path,
+      agent: { protocol: req.protocol },
+      res: {
+        httpVersion: req.httpVersion,
+        headers: { date: req._startTime },
+        client: { servername: req.hostname }
+      }
+    }
+  }
+  logServiceError(error)
 
-  return res.status(status).json({ status, error: error.message })
+  return res.status(status).json({ status, error: message })
 }
 
 /**
@@ -121,6 +128,7 @@ function verifySlackTokenMiddleware (req, res, next) {
   const { token } = payload
   const invalidToken = token !== process.env.SLACK_VERIFICATION_TOKEN
   const error = invalidToken ? new Error('Un-authorized request') : null
+  if (error) error.status = 401
 
   return next(error)
 }
