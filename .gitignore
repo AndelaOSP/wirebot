@@ -4,3 +4,5 @@ node_modules/*
 .vscode/
 .nyc_output
 coverage
+logs/*.log
+yarn.lock
