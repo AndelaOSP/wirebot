@@ -1,13 +1,13 @@
-const logger = require('../../logs')
-const sinon = require('sinon')
+// const logger = require('../../logs')
+// const sinon = require('sinon')
 
-const { app } = require('../../wirebot')
-const {
-  expect
-} = require('../helpers')
+// const { app } = require('../../wirebot')
+// const {
+//   expect
+// } = require('../helpers')
 
-describe('Wireot', () => {
-  describe('- Server', () => {
-    it('should')
-  })
-})
+// describe('Wirebot', () => {
+//   describe('- Server', () => {
+//     it('should')
+//   })
+// })
