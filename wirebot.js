@@ -3,7 +3,6 @@ require('dotenv').load()
 const express = require('express')
 const http = require('http')
 const helmet = require('helmet')
-const bodyParser = require('body-parser')
 
 const isDevMode = process.NODE_ENV === 'development'
 const slackIM = require('./modules/slack/interactive_messages')
@@ -63,7 +62,7 @@ function onError (error) {
 
 app.use(helmet())
 app.options(setHeadersMiddleware)
-app.use(bodyParser.urlencoded({ extended: false }))
+app.use(express.urlencoded({ extended: false }))
 app.use(loggingMiddleware)
 app.get('/', botHomeMiddleware)
 app.post('/slack/actions', verifySlackTokenMiddleware, slackImMiddleware)

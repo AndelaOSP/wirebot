@@ -50,12 +50,12 @@ On the **Slash Commands** page,
 ![Configuring a request URL](https://github.com/slackapi/node-slack-interactive-messages/blob/master/support/interactive-components.gif)
 
 
-### Run WIREBOT
+### Run WIREBOT locally
 - Create a **.env** file and configure your environment variables using the **.env.sample** file in the root directory of the repository
 
 - Start the bot server locally:
   ```sh
-  npm start
+  npm run start:dev
   ```
 - You can now communicate with the bot via Slack using the slash command below
   - `/report` for reporting incidents.
