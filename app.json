@@ -1,8 +1,7 @@
 {
   "name": "wirebot",
   "description": "workspace report incident bot",
-  "scripts": {
-  },
+  "scripts": {},
   "env": {
     "API_URL": {
       "required": true
@@ -25,9 +24,7 @@
       "quantity": 1
     }
   },
-  "addons": [
-
-  ],
+  "addons": [],
   "buildpacks": [
     {
       "url": "heroku/nodejs"
