@@ -30,12 +30,12 @@ const locationMessage = {
   attachments: [
     {
       color: color.primary,
-      title: 'Which Andela People team should handle this?',
+      title: 'Which Andela P&C team should handle this?',
       callback_id: 'location',
       actions: [
         {
           name: 'location',
-          text: 'select people team',
+          text: 'Which Andela P&C team should handle this?',
           type: 'select',
           options: [
             {
@@ -49,10 +49,6 @@ const locationMessage = {
             {
               text: 'United States',
               value: 'USA'
-            },
-            {
-              text: 'Uganda',
-              value: 'Uganda'
             }
           ]
         }
@@ -62,8 +58,12 @@ const locationMessage = {
 }
 const formErrorMessages = {
   dateError: {
-    name: 'dateOccurred',
-    error: 'Sorry, this date is invalid!'
+    name: 'date',
+    error: 'Sorry, this date format is invalid!'
+  },
+  locationError: {
+    name: 'incidentLocation',
+    error: 'location format should be (place, city, country)'
   }
 }
 const exitMessage = {
@@ -148,18 +148,15 @@ function addWitnessMessage (id, pristine) {
   const slackHandles = pristine ? '' : id.replace(/\w+_\d_/g, '').split('_')
     .map(handle => `<@${handle}>`).join(' ')
   const pretext = slackHandles ? `_you have added_ ${slackHandles}` : ''
-  let actions = yesNoActions
+  const actions = yesNoActions
 
   if (slackHandles) {
-    actions = [
-      ...yesNoActions,
-      {
-        name: 'clear',
-        text: 'clear witnesses',
-        type: 'button',
-        value: 'clear'
-      }
-    ]
+    actions.push({
+      name: 'clear',
+      text: 'clear citnesses',
+      type: 'button',
+      value: 'clear'
+    })
   }
 
   return {
@@ -214,8 +211,6 @@ function selectWitnessesMessage (id) {
  * @returns {Object} the slack dialog
  */
 function reportFormDialog (id) {
-  const pAndCLocation = id.split('_')[0]
-
   return {
     title: 'Incident Report Form',
     submit_label: 'Report',
@@ -243,18 +238,18 @@ function reportFormDialog (id) {
         label: 'Location',
         type: 'text',
         name: 'incidentLocation',
-        min_length: 5,
+        min_length: 10,
         placeholder: 'where did this happen?',
-        hint: `where the incident occurred in ${pAndCLocation}.`
+        hint: 'where the incident occurred(place, city, country).'
       },
       {
         label: 'Description',
         type: 'textarea',
         name: 'description',
-        min_length: 15,
+        min_length: 50,
         max_length: 3000,
         placeholder: 'tell us how it happened',
-        hint: 'description should be between 15 - 3000 characters.'
+        hint: 'description should be between 50 - 3000 characters.'
       }
     ]
   }
@@ -284,7 +279,7 @@ function getIncidentActions (id) {
       style: 'danger'
     }
   ]
-}
+};
 
 /**
  * Witness Message

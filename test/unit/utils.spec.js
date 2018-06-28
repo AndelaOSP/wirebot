@@ -1,4 +1,5 @@
 const logger = require('../../logs')
+const sinon = require('sinon')
 const {
   expect, slackUser, errorStub
 } = require('../helpers')
@@ -7,16 +8,18 @@ const {
   getAndelaOffice,
   getSlackUserLocation,
   formatUserData,
-  validateDate
+  validateDate,
+  validateLocation
 } = require('../../modules/utils')
 
 describe('Utils:', () => {
   describe('- logServiceError:', () => {
     // @TODO test should be refactored to use callee return values
     it('should call the winston error logger function', () => {
+      sinon.spy(logger, 'error')
       const error = { ...new Error('message'), ...errorStub }
       logServiceError(error)
-      expect(logger.error.called).to.equal(true)
+      expect(logger.error.calledOnce).to.equal(true)
       delete error.response
       logServiceError(error)
       expect(logger.error.called).to.equal(true)
@@ -24,6 +27,7 @@ describe('Utils:', () => {
       logServiceError(error)
       expect(logger.error.called).to.equal(true)
       process.env.NODE_ENV = 'test'
+      logger.error.restore()
     })
   })
 
@@ -91,15 +95,31 @@ describe('Utils:', () => {
       expect(validateDate('12-12-2017')).to.equal(true)
     })
 
-    // @TODO write tests for future dates validation
+    it('should return false for invalid dates', () => {
+      expect(validateDate('12-12-17')).to.equal(false)
+      expect(validateDate('30-30-2017')).to.equal(false)
+    })
 
-    // it('should return false for invalid dates', () => {
-    //   expect(validateDate('12-12-17')).to.equal(false)
-    //   expect(validateDate('30-30-2017')).to.equal(false)
-    // })
+    it('should throw an error for non-string arguments', () => {
+      expect(validateDate.bind(null, 2)).to.throw('invalid non-string arg')
+    })
+  })
 
-    // it('should throw an error for non-string arguments', () => {
-    //   expect(validateDate.bind(null, 2)).to.throw('invalid non-string arg')
-    // })
+  describe('- validateLocation', () => {
+    it('should return true for comma separated 3-words location args', () => {
+      expect(validateLocation('ikeja,lagos,nigeria')).to.equal(true)
+    })
+
+    it('should allow spaced comma separated locations', () => {
+      expect(validateLocation('ikeja, lagos, nigeria')).to.equal(true)
+    })
+
+    it('should return false for invalid locations', () => {
+      expect(validateLocation('ikeja,lagos')).to.equal(false)
+    })
+
+    it('should throw an error for non-string arguments', () => {
+      expect(validateLocation.bind(null, 2)).to.throw('invalid non-string arg')
+    })
   })
 })

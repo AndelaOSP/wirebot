@@ -14,7 +14,6 @@ const options = {
     handleExceptions: true,
     humanReadableUnhandledException: true,
     json: false,
-    silent: process.env.NODE_ENV === 'test',
     colorize: true,
     prettyPrint: true,
     format: winston.format.combine(
