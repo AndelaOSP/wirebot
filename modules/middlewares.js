@@ -7,7 +7,7 @@ const { logServiceError } = require('./utils')
 const { ALLOWED_ORIGINS, API_URL, APP_URL } = process.env
 
 /**
- * Wirebots Request Logging Middlware
+ * Wirebots Http Request Logging Middlware
  *
  * @param {Object} req the http request object
  * @param {Object} res the http response object
@@ -15,7 +15,7 @@ const { ALLOWED_ORIGINS, API_URL, APP_URL } = process.env
  *
  * @returns {Object} the next middleware function
  */
-function loggingMiddleware (req, res, next) {
+function httpRequestLoggingMiddleware (req, res, next) {
   return morgan('combined', {
     immediate: true, stream: { write: msg => logger.info(msg.trim()) }
   })(req, res, next)
@@ -40,7 +40,7 @@ function setHeadersMiddleware (req, res) {
   res.header('Access-Control-Allow-Headers', `${headers1} ${headers2}`)
   res.header('Access-Control-Allow-Credentials', 'true')
 
-  return res.status(200)
+  return res.status(204)
 }
 
 /**
@@ -83,9 +83,10 @@ function httpErrorMiddleware (error, req, res, next) {
       }
     }
   }
+
   logServiceError(error)
 
-  return res.status(status).json({ status, error: message })
+  return res.status(error.status).json({ status, error: message })
 }
 
 /**
@@ -116,6 +117,7 @@ function slackReportMiddleware (req, res) {
 
 /**
  * Verify Slack Token Middleware
+ * @TODO update to signing secret once node_slack_sdk does so
  *
  * @param {Object} req the http request object
  * @param {Object} res the http response object
@@ -140,5 +142,5 @@ module.exports = {
   verifySlackTokenMiddleware,
   httpErrorMiddleware,
   slackReportMiddleware,
-  loggingMiddleware
+  httpRequestLoggingMiddleware
 }

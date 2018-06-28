@@ -1,3 +1,4 @@
+const moment = require('moment')
 const logger = require('../logs')
 
 /**
@@ -30,9 +31,8 @@ function logServiceError (error) {
     const stack = process.env.NODE_ENV === 'development' ? error.stack : ''
     logMsg = `${error.message} ${error.code || stack}`
   }
-  // we return null, end of flow error has been logged.
-  // services need to check if response is null to proceed
-  logger.error(logMsg)
+
+  return logger.error(logMsg)
 }
 
 /**
@@ -43,12 +43,15 @@ function logServiceError (error) {
  * @returns {Object} Andela office details
  */
 function getAndelaOffice (country) {
-  if (!/Nigeria|Kenya|USA/i.test(country)) {
-    throw new RangeError('country should be Nigeria, Kenya or USA')
+  if (!/Nigeria|Kenya|USA|Uganda/i.test(country)) {
+    throw new RangeError('country should be Nigeria, Kenya, Uganda or USA')
   }
 
   const centres = {
-    nigeria: 'Epic Tower', kenya: 'ST. Catherines', usa: 'New York'
+    nigeria: 'Epic Tower',
+    kenya: 'ST. Catherines',
+    usa: 'New York',
+    uganda: 'Kampala Uganda'
   }
   const centre = centres[country.toLowerCase()]
 
@@ -57,7 +60,7 @@ function getAndelaOffice (country) {
 
 /**
  * Get Slack User's Location
- *
+ * @TODO add uganda location
  * @param {String} timezone the timezone slack user profile details
  *
  * @returns {Object} the slack users location
@@ -72,7 +75,10 @@ function getSlackUserLocation (timezone) {
     Nairobi: { centre: 'St. Catherines', country: 'Kenya' }
   }
 
-  return { name: 'office', ...locations[city] }
+  const fallbackLocation = { center: 'Kampala Uganda', country: 'Uganda' }
+  const locale = locations[city] || fallbackLocation
+
+  return { name: 'office', ...locale }
 }
 
 /**
@@ -152,11 +158,10 @@ function formatUserData (slackUser, pAndCTeam) {
  * @returns {Boolean} validity of the date true or false
  */
 function validateDate (date) {
-  if (typeof date !== 'string') throw new RangeError('invalid non-string arg')
   const dateRegex = /^((0[1-9])|([12]\d)|(3[01]))-((0[1-9])|(1[0-2]))-\d{4}$/
-  // @TODO might want to also retrict to certain date ranges using moment
-  // @TODO error message can be returned here for specificity
-  return dateRegex.test(date)
+
+  return dateRegex.test(date) && moment(date, 'mm-dd-yyyy')
+    .isBefore(moment().add(1, 'day'))
 }
 
 /**
