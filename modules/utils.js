@@ -1,3 +1,4 @@
+const moment = require('moment')
 const logger = require('../logs')
 
 /**
@@ -16,23 +17,29 @@ const logger = require('../logs')
  * @returns {Object} winston log info
  */
 function logServiceError (error) {
-  const { message, code } = error
-  let logMsg = ''
-  if (error.response) {
-    const { status, request, request: { res } } = error.response
-    const { method, path, agent: { protocol }, headers } = request
-    const { httpVersion, headers: { date }, client: { servername } } = res
-    const ua = headers ? headers['user-agent'] : 'Slackbot 1.0'
-    logMsg = `::1 - - [${date}] "${method} ${path} HTTP/${httpVersion}" `
-    logMsg += `${status} - "${message || ''} ${code || ''}" ${ua}"`
-    logMsg += ` - "Wire (+${protocol}//${servername})`
-  } else {
-    const stack = process.env.NODE_ENV === 'development' ? error.stack : ''
-    logMsg = `${error.message} ${error.code || stack}`
+  try {
+    const { message, code } = error
+    let logMsg = ''
+    if (error.response) {
+      const { status, request, request: { res } } = error.response
+      const { method, path, agent: { protocol }, headers } = request
+      const { httpVersion, headers: { date }, client: { servername } } = res
+      const ua = headers ? headers['user-agent'] : 'Slackbot 1.0'
+      logMsg = `::1 - - [${date}] "${method} ${path} HTTP/${httpVersion}" `
+      logMsg += `${status} - "${message || ''} ${code || ''}" ${ua}"`
+      logMsg += ` - "Wire (+${protocol}//${servername})`
+    } else {
+      const stack = process.env.NODE_ENV === 'development' ? error.stack : ''
+      logMsg = `${error.message} ${error.code || stack}`
+    }
+    // we return null, end of flow error has been logged.
+    // services need to check if response is null to proceed
+    logger.error(logMsg)
+
+    throw error
+  } catch (error) {
+    return error
   }
-  // we return null, end of flow error has been logged.
-  // services need to check if response is null to proceed
-  logger.error(logMsg)
 }
 
 /**
@@ -43,12 +50,15 @@ function logServiceError (error) {
  * @returns {Object} Andela office details
  */
 function getAndelaOffice (country) {
-  if (!/Nigeria|Kenya|USA/i.test(country)) {
-    throw new RangeError('country should be Nigeria, Kenya or USA')
+  if (!/Nigeria|Kenya|USA|Uganda/i.test(country)) {
+    throw new RangeError('country should be Nigeria, Kenya, Uganda or USA')
   }
 
   const centres = {
-    nigeria: 'Epic Tower', kenya: 'ST. Catherines', usa: 'New York'
+    nigeria: 'Epic Tower',
+    kenya: 'ST. Catherines',
+    usa: 'New York',
+    uganda: 'Uganda'
   }
   const centre = centres[country.toLowerCase()]
 
@@ -152,26 +162,10 @@ function formatUserData (slackUser, pAndCTeam) {
  * @returns {Boolean} validity of the date true or false
  */
 function validateDate (date) {
-  if (typeof date !== 'string') throw new RangeError('invalid non-string arg')
   const dateRegex = /^((0[1-9])|([12]\d)|(3[01]))-((0[1-9])|(1[0-2]))-\d{4}$/
-  // @TODO might want to also retrict to certain date ranges using moment
-  // @TODO error message can be returned here for specificity
-  return dateRegex.test(date)
-}
 
-/**
- * Validate Slack Dialog Incident Location Field
- *
- * @param {String} location the locationn of incident  (place,city,country)
- *
- * @returns {Boolean} the validity of the location true or false
- */
-function validateLocation (location) {
-  if (typeof location !== 'string') {
-    throw new RangeError('invalid non-string arg')
-  }
-
-  return /^(.+,){2}.+$/.test(location.trim())
+  return dateRegex.test(date) && moment(date, 'mm-dd-yyyy')
+    .isBefore(moment().add(1, 'day'))
 }
 
 module.exports = {
@@ -179,6 +173,5 @@ module.exports = {
   getAndelaOffice,
   getSlackUserLocation,
   validateDate,
-  validateLocation,
   formatUserData
 }
