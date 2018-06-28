@@ -1,7 +1,7 @@
 const { createMessageAdapter } = require('@slack/interactive-messages')
 
 const { openSlackDialog } = require('./web_client')
-const { validateDate, validateLocation } = require('../utils')
+const { validateDate } = require('../utils')
 const {
   sendIncidentToWireApi,
   notifyPAndChannels,
@@ -134,22 +134,25 @@ function openSelectWitness (payload, respond) {
 function reportIncident (payload, respond) {
   try {
     const submission = payload.submission
-    const { dateOccurred, incidentLocation } = submission
-    const { dateError, locationError } = formErrorMessages
+    const { dateOccurred } = submission
+    const { dateError } = formErrorMessages
     const message = { errors: [] }
-
-    if (!validateLocation(incidentLocation)) message.errors.push(locationError)
     if (!validateDate(dateOccurred)) message.errors.push(dateError)
     if (message.errors.length) return message
 
     respond(loadingMessage)
       .then(async () => {
         const apiResponse = await sendIncidentToWireApi(payload)
-        if (!apiResponse) throw new Error('service error occurred')
         const { witnesses } = apiResponse
-        if (witnesses && witnesses.length) await notifyWitnessesOnSlack(apiResponse)
+        if (witnesses && witnesses.length) {
+          await notifyWitnessesOnSlack(apiResponse)
+        }
         await notifyPAndChannels(apiResponse)
         respond(incidentSubmittedMessage(apiResponse))
+      })
+      .catch(err => {
+        respond(errorMessage)
+        throw err
       })
   } catch (error) {
     respond(errorMessage)

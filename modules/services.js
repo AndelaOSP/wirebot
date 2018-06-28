@@ -53,6 +53,28 @@ async function notifyWitnessesOnSlack (payload) {
 }
 
 /**
+ *
+ *
+ * @param {*} userIds
+ * @returns
+ */
+async function getFormatSlackUserProfiles (userIds) {
+  try {
+    if (!Array.isArray(userIds)) {
+      throw new RangeError('array of user ids required')
+    }
+    let users = await Promise.all(userIds.map(id => getSlackUserProfile(id)))
+      .catch(logServiceError)
+    users = users.map(user => formatUserData(user))
+      .filter(profile => profile => profile.email)
+
+    return users
+  } catch (error) {
+    return logServiceError(error)
+  }
+}
+
+/**
  * Send Wirebot Response To Wire Api
  *
  * @param {Object} payload the incident report
@@ -82,10 +104,7 @@ async function sendIncidentToWireApi (payload) {
     }
 
     if (witnesses.length) {
-      data.witnesses = await Promise.all(witnesses
-        .map(id => getSlackUserProfile(id)
-          .then(slackUser => formatUserData(slackUser))))
-        .then(profiles => profiles.filter(value => value.email))
+      data.witnesses = await getFormatSlackUserProfiles(witnesses)
     }
 
     // post data to wire api
