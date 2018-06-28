@@ -60,10 +60,7 @@ const errorStub = {
   }
 }
 
-const serverError = (syscall, code) => ({ syscall, code })
-
 module.exports = {
   slackUser,
-  errorStub,
-  serverError
+  errorStub
 }

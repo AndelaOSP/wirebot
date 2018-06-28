@@ -60,10 +60,8 @@
     "globals": [
       "describe",
       "it",
-      "before",
-      "after",
-      "beforeEach",
-      "afterEach"
+      "expect",
+      "should"
     ]
   }
 }

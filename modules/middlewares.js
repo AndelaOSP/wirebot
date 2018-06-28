@@ -7,7 +7,7 @@ const { logServiceError } = require('./utils')
 const { ALLOWED_ORIGINS, API_URL, APP_URL } = process.env
 
 /**
- * Wirebots Http Request Logging Middlware
+ * Wirebots Request Logging Middlware
  *
  * @param {Object} req the http request object
  * @param {Object} res the http response object
@@ -15,7 +15,7 @@ const { ALLOWED_ORIGINS, API_URL, APP_URL } = process.env
  *
  * @returns {Object} the next middleware function
  */
-function httpRequestLoggingMiddleware (req, res, next) {
+function loggingMiddleware (req, res, next) {
   return morgan('combined', {
     immediate: true, stream: { write: msg => logger.info(msg.trim()) }
   })(req, res, next)
@@ -69,28 +69,23 @@ function errorFourZeroFourMiddleware (req, res, next) {
  * @returns {Object} the error in json
  */
 function httpErrorMiddleware (error, req, res, next) {
-  try {
-    const { status = 500 } = error
-    error.response = {
-      status,
-      request: {
-        ...req,
-        path: req.path,
-        agent: { protocol: req.protocol },
-        res: {
-          httpVersion: req.httpVersion,
-          headers: { date: req._startTime },
-          client: { servername: req.hostname }
-        }
+  const { status = 500, message } = error
+  error.response = {
+    status,
+    request: {
+      ...req,
+      path: req.path,
+      agent: { protocol: req.protocol },
+      res: {
+        httpVersion: req.httpVersion,
+        headers: { date: req._startTime },
+        client: { servername: req.hostname }
       }
     }
-
-    return logServiceError(error)
-  } catch (error) {
-    return res.status(error.status).json({
-      status: error.status, error: error.message
-    })
   }
+  logServiceError(error)
+
+  return res.status(status).json({ status, error: message })
 }
 
 /**
@@ -145,5 +140,5 @@ module.exports = {
   verifySlackTokenMiddleware,
   httpErrorMiddleware,
   slackReportMiddleware,
-  httpRequestLoggingMiddleware
+  loggingMiddleware
 }
