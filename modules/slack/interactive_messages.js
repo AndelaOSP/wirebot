@@ -1,12 +1,11 @@
 const { createMessageAdapter } = require('@slack/interactive-messages')
 
 const { openSlackDialog } = require('./web_client')
-const { validateDate, validateLocation } = require('../utils')
+const { validateDate, validateLocation, logServiceError } = require('../utils')
 const {
   sendIncidentToWireApi,
-  notifyPAndChannels,
-  notifyWitnessesOnSlack,
-  getIncidentById
+  notifyPAndCChannels,
+  notifyWitnessesOnSlack
 } = require('../services')
 const {
   reportFormDialog,
@@ -18,12 +17,13 @@ const {
   selectWitnessesMessage,
   addWitnessMessage,
   loadingMessage,
-  incidentSubmittedMessage,
-  statusMessage
+  incidentSubmittedMessage
 } = require('./messages')
 
 const { SLACK_VERIFICATION_TOKEN } = process.env
-const slackIM = createMessageAdapter(SLACK_VERIFICATION_TOKEN)
+const slackIM = createMessageAdapter(SLACK_VERIFICATION_TOKEN, {
+  syncResponseTimeout: 3000, lateResponseFallbackEnabled: true
+})
 
 /**
  * Open Bot Incident Location Question Handler
@@ -84,40 +84,27 @@ function openAddWitness (payload, respond) {
 }
 
 /**
- * Open Incident Report Dialog Form Handler
- *
- * @param {Object} payload the /*selectWitness slack response
- *
- * @returns {Object} the slack bot message
- */
-function openReportIncidentFormDialog (payload, respond) {
-  try {
-    openSlackDialog(payload.trigger_id, reportFormDialog(`${payload.callback_id}`))
-
-    return exitMessage
-  } catch (error) {
-    respond(errorMessage)
-    throw error
-  }
-}
-
-/**
  * Open Incident Witness Select Handler
  *
  * @param {Object} payload the /*witness slack response
  *
  * @returns {Object} the slack bot message
  */
-function openSelectWitness (payload, respond) {
+async function openSelectWitness (payload, respond) {
   try {
-    const { actions: [ { value } ], callback_id: callbackId } = payload
-    const newCallbackId = callbackId.replace(/_witness|_no/g, '')
-    const newPayload = { ...payload, callback_id: newCallbackId }
+    // eslint-disable-next-line camelcase
+    const { actions: [ { value } ], callback_id, trigger_id } = payload
+    const newCallbackId = callback_id.replace(/_witness|_no/g, '')
+    const witnesses = newCallbackId.split('_').slice(0, 2).join('_')
+    const dialogForm = reportFormDialog(newCallbackId)
 
-    if (value === 'no') return openReportIncidentFormDialog(newPayload)
+    if (value === 'no') {
+      await openSlackDialog(trigger_id, dialogForm)
+      respond(exitMessage)
+    }
     if (value === 'yes') return selectWitnessesMessage(newCallbackId)
 
-    return addWitnessMessage(newCallbackId.split('_').slice(0, 2).join('_'), 1)
+    return value === 'no' ? void 0 : addWitnessMessage(witnesses, 1)
   } catch (error) {
     respond(errorMessage)
     throw error
@@ -137,38 +124,30 @@ function reportIncident (payload, respond) {
     const { dateOccurred, incidentLocation } = submission
     const { dateError, locationError } = formErrorMessages
     const message = { errors: [] }
-
     if (!validateLocation(incidentLocation)) message.errors.push(locationError)
     if (!validateDate(dateOccurred)) message.errors.push(dateError)
     if (message.errors.length) return message
-
+    // log service error for respond promise. node-slack-sdk promise issue
     respond(loadingMessage)
-      .then(async () => {
-        const apiResponse = await sendIncidentToWireApi(payload)
-        if (!apiResponse) throw new Error('service error occurred')
+      .then(() => sendIncidentToWireApi(payload))
+      .then((apiResponse) => {
         const { witnesses } = apiResponse
-        if (witnesses && witnesses.length) await notifyWitnessesOnSlack(apiResponse)
-        await notifyPAndChannels(apiResponse)
         respond(incidentSubmittedMessage(apiResponse))
+        Promise.all([
+          (witnesses && witnesses.length && notifyWitnessesOnSlack(apiResponse)),
+          notifyPAndCChannels(apiResponse)
+        ]).catch(logServiceError)
       })
+      .catch(err => {
+        respond(errorMessage)
+        return logServiceError(err)
+      })
+
+    return void 0
   } catch (error) {
     respond(errorMessage)
     throw error
   }
-}
-
-/**
- * Incident Status Handler
- *
- * @param {Object} payload the payload containing incident id from slack
- *
- * @returns {Object} the slack bot message
- */
-async function incidentStatus (payload) {
-  const id = payload.callback_id.split('_')[0]
-  const { Status: { status } } = await getIncidentById(id)
-
-  return statusMessage(status)
 }
 
 slackIM.action('report', openIncidentLocation)
@@ -177,6 +156,5 @@ slackIM.action(/^.+_priority$/, openAddWitness)
 slackIM.action(/^.+_witness$/, openSelectWitness)
 slackIM.action(/^.+_selectWitness$/, openAddWitness)
 slackIM.action(/^.+_form$/, reportIncident)
-slackIM.action(/^.+_status$/, incidentStatus)
 
 module.exports = slackIM

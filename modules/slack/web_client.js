@@ -1,5 +1,4 @@
 const { WebClient } = require('@slack/client')
-const { logServiceError } = require('../utils')
 
 const { chat, dialog, users } = new WebClient(process.env.SLACK_TOKEN)
 
@@ -11,7 +10,7 @@ const { chat, dialog, users } = new WebClient(process.env.SLACK_TOKEN)
  * @returns {Promise} the slack user
  */
 function getSlackUserProfile (id) {
-  return users.info({ user: id }).then(data => data.user).catch(logServiceError)
+  return users.info({ user: id }).then(data => data.user)
 }
 
 /**
@@ -25,7 +24,6 @@ function getSlackUserProfile (id) {
  */
 function sendSlackMessage (channel, text, attachments) {
   return chat.postMessage({ channel, text, attachments })
-    .catch(logServiceError)
 }
 
 /**
@@ -37,7 +35,6 @@ function sendSlackMessage (channel, text, attachments) {
  */
 function openSlackDialog (triggerId, dialogData) {
   return dialog.open({ trigger_id: triggerId, dialog: dialogData })
-    .catch(logServiceError)
 }
 
 module.exports = {

@@ -30,12 +30,12 @@ const locationMessage = {
   attachments: [
     {
       color: color.primary,
-      title: 'Which Andela P&C team should handle this?',
+      title: 'Which Andela People team should handle this?',
       callback_id: 'location',
       actions: [
         {
           name: 'location',
-          text: 'Which Andela P&C team should handle this?',
+          text: 'select people team',
           type: 'select',
           options: [
             {
@@ -49,6 +49,10 @@ const locationMessage = {
             {
               text: 'United States',
               value: 'USA'
+            },
+            {
+              text: 'Uganda',
+              value: 'Uganda'
             }
           ]
         }
@@ -58,8 +62,8 @@ const locationMessage = {
 }
 const formErrorMessages = {
   dateError: {
-    name: 'date',
-    error: 'Sorry, this date format is invalid!'
+    name: 'dateOccurred',
+    error: 'Sorry, this date is invalid!'
   },
   locationError: {
     name: 'incidentLocation',
@@ -148,15 +152,18 @@ function addWitnessMessage (id, pristine) {
   const slackHandles = pristine ? '' : id.replace(/\w+_\d_/g, '').split('_')
     .map(handle => `<@${handle}>`).join(' ')
   const pretext = slackHandles ? `_you have added_ ${slackHandles}` : ''
-  const actions = yesNoActions
+  let actions = yesNoActions
 
   if (slackHandles) {
-    actions.push({
-      name: 'clear',
-      text: 'clear citnesses',
-      type: 'button',
-      value: 'clear'
-    })
+    actions = [
+      ...yesNoActions,
+      {
+        name: 'clear',
+        text: 'clear witnesses',
+        type: 'button',
+        value: 'clear'
+      }
+    ]
   }
 
   return {
@@ -212,6 +219,8 @@ function selectWitnessesMessage (id) {
  */
 function reportFormDialog (id) {
   return {
+    replace_original: true,
+    delete_original: true,
     title: 'Incident Report Form',
     submit_label: 'Report',
     callback_id: `${id}_form`,
@@ -246,10 +255,10 @@ function reportFormDialog (id) {
         label: 'Description',
         type: 'textarea',
         name: 'description',
-        min_length: 50,
+        min_length: 15,
         max_length: 3000,
         placeholder: 'tell us how it happened',
-        hint: 'description should be between 50 - 3000 characters.'
+        hint: 'description should be between 15 - 3000 characters.'
       }
     ]
   }
@@ -275,11 +284,11 @@ function getIncidentActions (id) {
       name: 'status',
       text: 'Get Incident Status',
       type: 'button',
-      value: 'status',
+      value: id,
       style: 'danger'
     }
   ]
-};
+}
 
 /**
  * Witness Message
@@ -328,7 +337,7 @@ function pAndCMessage (incident) {
     author_name: `Reported by <@${author}>`,
     title: subject,
     title_link: `${process.env.APP_URL}/incidents/${id}`,
-    callback_id: `${id}_status`,
+    callback_id: 'status',
     fields: [
       {
         title: 'Incident ID',
@@ -339,7 +348,7 @@ function pAndCMessage (incident) {
         value: priorities[levelId - 1]
       }
     ],
-    actions: getIncidentActions(id)
+    actions: [getIncidentActions(id)[0]] // add status btn if wirebot authed
   }]
 }
 
@@ -359,11 +368,11 @@ function incidentSubmittedMessage (incident) {
     attachments: [{
       pretext: 'Thank you for reporting this incident.',
       color: color.primary,
-      callback_id: `${id}_status`,
+      callback_id: 'status',
       fields: [
         {
           title: 'Incident ID',
-          value: id
+          value: `\`${id}\``
         },
         {
           title: 'Subject',
@@ -373,15 +382,14 @@ function incidentSubmittedMessage (incident) {
           title: 'Priority',
           value: priorities[levelId - 1]
         }
-      ],
-      actions: getIncidentActions(id)
+      ]
     }]
   }
 }
 
 /**
  * Incident Status Message
- *
+ * wip when wire-api adds authorization token or credentials for bot status req
  * @param {String} status the incident status
  * @returns
  */
