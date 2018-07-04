@@ -153,15 +153,15 @@ function formatUserData (slackUser, pAndCTeam) {
 /**
  * Validate Slack Dialog Incident Date Field
  *
- * @param {Date} date the date of incident in format (dd-mm-yyy)
+ * @param {Date} date the date of incident in format (DD-MM-YYYY)
  *
  * @returns {Boolean} validity of the date true or false
  */
 function validateDate (date) {
   const dateRegex = /^((0[1-9])|([12]\d)|(3[01]))-((0[1-9])|(1[0-2]))-\d{4}$/
 
-  return dateRegex.test(date) && moment(date, 'mm-dd-yyyy')
-    .isBefore(moment().add(1, 'day'))
+  return dateRegex.test(date) && moment(date, 'DD-MM-YYYY')
+    .isBefore(moment().add(1, 'min'))
 }
 
 /**

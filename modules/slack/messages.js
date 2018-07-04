@@ -241,7 +241,7 @@ function reportFormDialog (id) {
         min_length: 10,
         max_length: 10,
         placeholder: 'when did this happen?',
-        hint: 'date should be in the past with format (dd-mm-yyyy).'
+        hint: 'date should be in the past with format (DD-MM-YYYY).'
       },
       {
         label: 'Location',

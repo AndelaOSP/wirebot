@@ -1,4 +1,4 @@
-const { expect, slackUser, errorStub, logger } = require('../helpers')
+const { expect, slackUser, errorStub, logger, moment } = require('../helpers')
 const {
   logServiceError,
   getAndelaOffice,
@@ -85,20 +85,14 @@ describe('Utils:', () => {
   })
 
   describe('- validateDate', () => {
-    it('should return true for date string args with format dd-mm-yyyy', () => {
+    it('should return true for date string args with format DD-MM-YYYY', () => {
       expect(validateDate('12-12-2017')).to.equal(true)
     })
 
-    // @TODO write tests for future dates validation
-
-    // it('should return false for invalid dates', () => {
-    //   expect(validateDate('12-12-17')).to.equal(false)
-    //   expect(validateDate('30-30-2017')).to.equal(false)
-    // })
-
-    // it('should throw an error for non-string arguments', () => {
-    //   expect(validateDate.bind(null, 2)).to.throw('invalid non-string arg')
-    // })
+    it('should return false for future dates', () => {
+      const date = moment().add(1, 'day').format('DD-MM-YYYY')
+      expect(validateDate(date)).to.equal(false)
+    })
   })
 
   describe('- validateLocation', () => {
