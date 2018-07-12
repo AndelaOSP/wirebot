@@ -1,35 +1,20 @@
-import { describe, it } from 'mocha';
-import moment from 'moment';
-import { expect, should } from 'chai';
-import glob from 'glob';
-import path from 'path';
 
-const projectFiles = glob.sync('*.js', {
-  cwd: path.resolve(__dirname, '../../'),
-  matchBase: true,
-  absolute: true,
-  ignore: [
-    'index.js',
-    'node_modules/**',
-    'coverage/**',
-    'test/**',
-    'helpers/**'
-  ]
-});
-
-// get all exports in project files for test
-// ensure that project has no named export collision as this would result
-// in functions being over-written.
-module.exports = projectFiles.map(file => require(file))
-  .reduce((fileA, fileB) => {
-    return { ...module.exports, ...fileA, ...fileB }
-  }, {});
+const moment = require('moment')
+const { expect, should } = require('chai')
+const sandbox = require('sinon').createSandbox()
+const { WebClient } = require('@slack/client')
+const { server, onError } = require('../../wirebot')
+const logger = require('../../logs')
+const stubs = require('./stubs')
 
 module.exports = {
-  ...module.exports,
-  describe,
-  it,
+  sandbox,
   expect,
   should: should(),
-  moment
-};
+  moment,
+  server,
+  onError,
+  logger,
+  WebClient: new WebClient(),
+  ...stubs
+}

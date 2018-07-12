@@ -2,76 +2,68 @@
   "name": "wirebot",
   "version": "1.0.0",
   "engines": {
-    "node": ">=6.9.0"
+    "node": ">=9.8.0"
   },
-  "main": "index.js",
+  "main": "wirebot.js",
   "scripts": {
-    "start": "node index.js",
-    "start-dev": "nodemon index.js",
-    "lint:fix": "eslint --fix . --ext .js",
-    "test": "export NODE_ENV=test && nyc _mocha --recursive test/index.spec.js"
+    "tunnel": "ssh -o ServerAliveInterval=10 -p 443 -R $(git config user.name):80:localhost:3000 serveo.net",
+    "start": "node wirebot.js",
+    "start:dev": "concurrently \"npm run tunnel\" \"nodemon wirebot.js\"",
+    "lint": "standard --fix",
+    "test": "export NODE_ENV=test && standard && nyc _mocha --recursive test/index.spec.js",
+    "test:watch": "export NODE_ENV=test && standard && nyc _mocha --recursive test/index.spec.js --watch"
   },
   "repository": "https://github.com/andela-ik/wirebot",
   "author": "wire-devs",
   "license": "MIT",
   "dependencies": {
-    "@slack/client": "^3.14.1",
-    "@slack/events-api": "^1.0.1",
-    "@slack/interactive-messages": "^0.2.0",
+    "@slack/client": "^4.3.1",
+    "@slack/interactive-messages": "^0.4.0",
     "axios": "^0.17.1",
-    "body-parser": "^1.18.2",
     "dotenv": "^4.0.0",
     "express": "^4.16.2",
-    "moment": "^2.21.0",
-    "node-cron": "^1.2.1"
+    "helmet": "^3.12.1",
+    "moment": "^2.22.2",
+    "morgan": "^1.9.0",
+    "winston": "^3.0.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.0.0-beta.49",
-    "@babel/preset-env": "^7.0.0-beta.49",
-    "@babel/register": "^7.0.0-beta.49",
-    "babel-plugin-istanbul": "^4.1.6",
     "chai": "^4.1.2",
-    "eslint": "^4.19.0",
-    "eslint-plugin-import": "^2.9.0",
+    "concurrently": "^3.5.1",
     "glob": "^7.1.2",
-    "istanbul": "^0.4.5",
     "mocha": "^5.2.0",
     "nodemon": "^1.12.1",
-    "nyc": "^12.0.1"
-  },
-  "babel": {
-    "presets": [
-      [
-        "@babel/preset-env",
-        {
-          "targets": {
-            "node": "current"
-          }
-        }
-      ]
-    ],
-    "env": {
-      "test": {
-        "plugins": [
-          "istanbul"
-        ]
-      }
-    }
+    "nyc": "^12.0.2",
+    "sinon": "^6.0.1",
+    "standard": "^11.0.1"
   },
   "nyc": {
     "all": true,
     "check-coverage": false,
     "eager": true,
-    "require": "@babel/register",
     "cache": true,
-    "babel-cache": true,
     "reporter": [
       "lcov",
       "text"
     ],
-    "sourceMap": false,
-    "instrument": false,
     "clean": true,
     "temp-directory": "./coverage/.tmp"
+  },
+  "nodemonConfig": {
+    "ignore": [
+      "test/*",
+      "coverage/*",
+      "dist/*"
+    ]
+  },
+  "standard": {
+    "globals": [
+      "describe",
+      "it",
+      "before",
+      "after",
+      "beforeEach",
+      "afterEach"
+    ]
   }
 }
