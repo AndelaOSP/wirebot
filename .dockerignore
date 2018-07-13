@@ -2,3 +2,5 @@ README.md
 Procfile
 .vscode/
 .gitignore
+.circleci
+Makefile
