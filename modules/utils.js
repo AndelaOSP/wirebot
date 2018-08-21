@@ -139,7 +139,7 @@ function formatUserData (slackUser, pAndCTeam) {
     throw new RangeError(`Invalid value ${invalidValue}`)
   }
 
-  const user = { userId: id, email, username, imageUrl }
+  const user = { slackId: id, email, username, imageUrl }
 
   if (pAndCTeam) {
     user.reporterLocation = getAndelaOffice(pAndCTeam)
