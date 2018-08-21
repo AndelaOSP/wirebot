@@ -20,7 +20,7 @@ const { API_URL, PNC_CHANNELS } = process.env
  */
 function notifyPAndCChannels (payload) {
   try {
-    const { reporter: [{ location: { country } }] } = payload
+    const { reporter: [{ reporterLocation: { country } }] } = payload
     const channel = PNC_CHANNELS.split(',').find(
       value => value.toLowerCase().includes(country.toLowerCase())
     ).replace(`-${country.toLowerCase()}`, '')
@@ -41,7 +41,7 @@ function notifyPAndCChannels (payload) {
 function notifyWitnessesOnSlack (payload) {
   try {
     const { witnesses } = payload
-    const witnessIds = witnesses.map(value => value.id)
+    const witnessIds = witnesses.map(value => value.userId)
 
     return Promise.all(witnessIds.map(
       id => sendSlackMessage(id, '', witnessMessage(payload))
@@ -108,13 +108,11 @@ async function sendIncidentToWireApi (payload) {
     })
     // remove if wire api starts returning location instead of locationIds
     apiResult.reporter[0] = {
-      ...incidentReporter,
-      id: incidentReporter.userId,
-      location: incidentReporter.reporterLocation
+      ...incidentReporter
     }
     if (witnesses.length) {
       apiResult.witnesses = data.witnesses
-        .map(value => ({ ...value, id: value.userId }))
+        .map(value => ({ ...value }))
     }
 
     return apiResult

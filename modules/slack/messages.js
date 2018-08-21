@@ -301,7 +301,7 @@ function witnessMessage (incident) {
   const { Location: { name, centre, country }, dateOccurred } = incident
 
   return [{
-    pretext: `<@${incident.reporter[0].id}> reported an incident and tagged you\
+    pretext: `<@${incident.reporter[0].userId}> reported an incident and tagged you\
  as a witness`,
     color: color.primary,
     fields: [
@@ -329,7 +329,7 @@ function witnessMessage (incident) {
  * @returns {Object} slack attachment message
  */
 function pAndCMessage (incident) {
-  const { id, subject, reporter: [{ id: author }], levelId } = incident
+  const { id, subject, reporter: [{ userId: author }], levelId } = incident
 
   return [{
     pretext: 'New incident on Wire',
