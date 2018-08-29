@@ -277,7 +277,7 @@ function getIncidentActions (id) {
       name: 'view',
       text: 'View Incident On Wire',
       type: 'button',
-      url: `${process.env.APP_URL}/incidents/${id}`,
+      url: `${process.env.APP_URL}/timeline/${id}`,
       style: 'primary'
     },
     {
