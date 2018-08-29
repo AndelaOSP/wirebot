@@ -336,7 +336,7 @@ function pAndCMessage (incident) {
     color: color.secondary,
     author_name: `Reported by <@${author}>`,
     title: subject,
-    title_link: `${process.env.APP_URL}/incidents/${id}`,
+    title_link: `${process.env.APP_URL}/timeline/${id}`,
     callback_id: 'status',
     fields: [
       {
