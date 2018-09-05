@@ -277,7 +277,7 @@ function getIncidentActions (id) {
       name: 'view',
       text: 'View Incident On Wire',
       type: 'button',
-      url: `${process.env.APP_URL}/incidents/${id}`,
+      url: `${process.env.APP_URL}/timeline/${id}`,
       style: 'primary'
     },
     {
@@ -301,7 +301,7 @@ function witnessMessage (incident) {
   const { Location: { name, centre, country }, dateOccurred } = incident
 
   return [{
-    pretext: `<@${incident.reporter[0].id}> reported an incident and tagged you\
+    pretext: `<@${incident.reporter[0].slackId}> reported an incident and tagged you\
  as a witness`,
     color: color.primary,
     fields: [
@@ -329,14 +329,14 @@ function witnessMessage (incident) {
  * @returns {Object} slack attachment message
  */
 function pAndCMessage (incident) {
-  const { id, subject, reporter: [{ id: author }], levelId } = incident
+  const { id, subject, reporter: [{ slackId: author }], levelId } = incident
 
   return [{
     pretext: 'New incident on Wire',
     color: color.secondary,
     author_name: `Reported by <@${author}>`,
     title: subject,
-    title_link: `${process.env.APP_URL}/incidents/${id}`,
+    title_link: `${process.env.APP_URL}/timeline/${id}`,
     callback_id: 'status',
     fields: [
       {
