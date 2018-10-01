@@ -133,8 +133,8 @@ function reportIncident (payload, respond) {
       .then((apiResponse) => {
         const { witnesses } = apiResponse
         respond(incidentSubmittedMessage(apiResponse))
-        Promise.all([
-          (witnesses && witnesses.length && notifyWitnessesOnSlack(apiResponse)),
+        // Uncomment the below commented out code to enable notifying tagged witnesses via Slack
+        Promise.all([/* (witnesses && witnesses.length && notifyWitnessesOnSlack(apiResponse)), */
           notifyPAndCChannels(apiResponse)
         ]).catch(logServiceError)
       })
