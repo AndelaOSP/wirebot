@@ -5,7 +5,7 @@ const { validateDate, validateLocation, logServiceError } = require('../utils')
 const {
   sendIncidentToWireApi,
   notifyPAndCChannels,
-  notifyWitnessesOnSlack
+  notifyWitnessesOnSlack // eslint-disable-line no-unused-vars
 } = require('../services')
 const {
   reportFormDialog,
@@ -131,6 +131,7 @@ function reportIncident (payload, respond) {
     respond(loadingMessage)
       .then(() => sendIncidentToWireApi(payload))
       .then((apiResponse) => {
+        // eslint-disable-next-line no-unused-vars
         const { witnesses } = apiResponse
         respond(incidentSubmittedMessage(apiResponse))
         // Uncomment the below commented out code to enable notifying tagged witnesses via Slack
