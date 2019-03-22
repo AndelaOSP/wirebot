@@ -25,7 +25,7 @@ $ yarn
 
 Get started by [creating a Slack App](https://api.slack.com/apps/new) if you haven't already.
 
-*PS:* You can only add the `Slack-App` to a workspace, with which you have `admin access`, You can create a new one for testing.
+*PS:* You can only add the `Slack-App` to a workspace, with which you have `admin access`, You can create a new workspace for testing.
 
 On the **Basic Information** page, in the section for **App Credentials**, note the **Verification Token** (we will add it to our `.env` file).
 
@@ -42,7 +42,7 @@ On the the **Oauth & Permissions** page on the dashboard,
 
 ngrok Setup
 
-At this point make sure the `wire-api` & `wire-bot` are running locally, we will need to our created `Slack-App` to be able to communicate with our local `wire-bot` server.
+At this point make sure the `wire-api` & `wire-bot` are running locally, we will need our created `Slack-App` to be able to communicate with our local `wire-bot` server.
 
 - To do this we will need [ngrok](https://ngrok.com/). Follow this [links'](https://dashboard.ngrok.com/get-started) instructions to install `ngrok` on your computer.
 
