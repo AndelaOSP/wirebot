@@ -42,7 +42,7 @@ On the the **Oauth & Permissions** page on the dashboard,
 
 ngrok Setup
 
-At this point make sure the `wire-api` & `wire-bot` are running locally, we will need to our created `Slack-App` to be able to communicate with our local `wire-bot` server.
+At this point make sure the `wire-api` & `wire-bot` are running locally, we will need our created `Slack-App` to be able to communicate with our local `wire-bot` server.
 
 - To do this we will need [ngrok](https://ngrok.com/). Follow this [links'](https://dashboard.ngrok.com/get-started) instructions to install `ngrok` on your computer.
 
