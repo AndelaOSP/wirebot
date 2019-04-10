@@ -1,4 +1,6 @@
-# wirebot [![Test Coverage](https://api.codeclimate.com/v1/badges/366efe7c8d9494bd82e8/test_coverage)](https://codeclimate.com/github/AndelaOSP/wirebot/test_coverage) [![CircleCI](https://circleci.com/gh/AndelaOSP/wirebot.svg?style=svg)](https://circleci.com/gh/AndelaOSP/wirebot)
+# wirebot
+
+[![Test Coverage](https://api.codeclimate.com/v1/badges/366efe7c8d9494bd82e8/test_coverage)](https://codeclimate.com/github/AndelaOSP/wirebot/test_coverage) [![CircleCI](https://circleci.com/gh/AndelaOSP/wirebot.svg?style=svg)](https://circleci.com/gh/AndelaOSP/wirebot)
 
 WIREBOT consumes [WIRE-API](https://github.com/AndelaOSP/wire-api)
 
