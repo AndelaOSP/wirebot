@@ -5,8 +5,8 @@ const { validateDate, validateLocation, logServiceError } = require('../utils')
 const {
   sendIncidentToWireApi,
   notifyPAndCChannels,
-  notifyWitnessesOnSlack,
-  createIncidentChannel // eslint-disable-line no-unused-vars
+  notifyWitnessesOnSlack, // eslint-disable-line no-unused-vars
+  createIncidentChannel
 } = require('../services')
 const {
   reportFormDialog,

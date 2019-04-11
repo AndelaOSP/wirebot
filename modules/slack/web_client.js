@@ -47,7 +47,7 @@ function inviteUsersToChannel (user, channel) {
 }
 
 async function getAllPrivateChannels () {
-  const privateChannels  = await groups.list();
+  const privateChannels = await groups.list()
   return privateChannels
 }
 

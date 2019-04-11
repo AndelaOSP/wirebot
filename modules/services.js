@@ -22,40 +22,40 @@ let witnessList = []
 
 // Gets the details of the newly created channel
 async function getCreatedChannel (channelName) {
-   const allChannels = await getAllPrivateChannels();
-   const wantedChannel = await allChannels.groups.filter(channel => channel.name === channelName )
-   return wantedChannel
- }
+  const allChannels = await getAllPrivateChannels()
+  const wantedChannel = await allChannels.groups.filter(channel => channel.name === channelName)
+  return wantedChannel
+}
 
 // Invites witnesses, P&C person to the channel
 async function inviteToChannel (channelName, stakeHolders) {
   const channelId = await getCreatedChannel(channelName)
 
-  if (stakeHolders.length > 0){
-    stakeHolders.map( stakeHolder => {
+  if (stakeHolders.length > 0) {
+    stakeHolders.map(stakeHolder => {
       inviteUsersToChannel(stakeHolder, channelId[0].id)
     })
   }
- }
+}
 
 // Creates a private channel for the newly created incident
- async function createIncidentChannel (payload) {
-   payload.witnesses.map(witness => witnessList.push(witness.slackId))
+async function createIncidentChannel (payload) {
+  payload.witnesses.map(witness => witnessList.push(witness.slackId))
 
-   const incidentSubject = payload.subject;
-   const channelName = "wire_incident_" + incidentSubject.substring(0, 7);
-   await createIncidentSlackChannel(channelName);
-   await inviteToChannel(channelName, witnessList);
- }
+  const incidentSubject = payload.subject
+  const channelName = 'wire_incident_' + incidentSubject.substring(0, 7)
+  await createIncidentSlackChannel(channelName)
+  await inviteToChannel(channelName, witnessList)
+}
 
 function notifyPAndCChannels (payload) {
   try {
     const { reporter: [{ reporterLocation: { centre } }] } = payload
     const getChannel = () => {
-      const channel = PNC_CHANNELS.split(",").find(value => value.toLowerCase().includes(centre.split(" ")[0].toLowerCase()));
-      return channel;
+      const channel = PNC_CHANNELS.split(',').find(value => value.toLowerCase().includes(centre.split(' ')[0].toLowerCase()))
+      return channel
     }
-    const incidentChannel = "#" + getChannel();
+    const incidentChannel = '#' + getChannel()
 
     return sendSlackMessage(incidentChannel, '', pAndCMessage(payload))
   } catch (error) {
