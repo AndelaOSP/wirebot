@@ -137,8 +137,7 @@ function reportIncident (payload, respond) {
         respond(incidentSubmittedMessage(apiResponse))
         // Uncomment the below commented out code to enable notifying tagged witnesses via Slack
         Promise.all([/* (witnesses && witnesses.length && notifyWitnessesOnSlack(apiResponse)), */
-          notifyPAndCChannels(apiResponse),
-          createIncidentChannel(apiResponse)
+          notifyPAndCChannels(apiResponse), createIncidentChannel(apiResponse)
         ]).catch(logServiceError)
       })
       .catch(err => {
