@@ -145,7 +145,6 @@ function reportIncident (payload, respond) {
         respond(errorMessage)
         return logServiceError(err)
       })
-
     return void 0
   } catch (error) {
     respond(errorMessage)
