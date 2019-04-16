@@ -9,7 +9,7 @@ const { witnessMessage, pAndCMessage } = require('./slack/messages')
 const { getSlackUserProfile, sendSlackMessage, createIncidentSlackChannel, inviteUsersToChannel, getAllPrivateChannels } = require('./slack/web_client')
 const { formatUserData } = require('./utils')
 
-const { API_URL, PNC_CHANNELS } = process.env
+const { API_URL, PNC_CHANNELS, PNC_KAMPALA, PNC_NAIROBI, PNC_LAGOS, PNC_KIGALI } = process.env
 let witnessList = []
 
 /**
@@ -28,12 +28,23 @@ async function getCreatedChannel (channelName) {
 }
 
 // Invites witnesses, P&C person to the channel
-async function inviteToChannel (channelName, stakeHolders) {
+async function inviteToChannel (channelName, stakeHolders, incidentLocation) {
   const channelId = await getCreatedChannel(channelName)
+  let locationPNC = PNC_LAGOS
 
-  if (stakeHolders.length > 0) {
-    stakeHolders.map(stakeHolder => {
-      inviteUsersToChannel(stakeHolder, channelId[0].id)
+  if(incidentLocation.toLowerCase() === 'kampala'){
+    locationPNC = PNC_KAMPALA
+  } else if(incidentLocation.toLowerCase() === 'nairobi'){
+    locationPNC = PNC_NAIROBI
+  } else if(incidentLocation.toLowerCase() === 'kigali'){
+    locationPNC = PNC_KIGALI
+  }
+
+  await inviteUsersToChannel(locationPNC, channelId[0].id)
+
+  if (stakeHolders.length > 0 && channelId) {
+    stakeHolders.map(async stakeHolder => {
+      await inviteUsersToChannel(stakeHolder, channelId[0].id)
     })
   }
 }
@@ -41,11 +52,12 @@ async function inviteToChannel (channelName, stakeHolders) {
 // Creates a private channel for the newly created incident
 async function createIncidentChannel (payload) {
   payload.witnesses.map(witness => witnessList.push(witness.slackId))
+  const incidentLocation = payload.Location.centre
+  const incidentId = payload.id
 
-  const incidentSubject = payload.subject
-  const channelName = 'wire_incident_' + incidentSubject.substring(0, 7)
+  const channelName = 'wire_' + incidentLocation.toLowerCase() + '_' + incidentId.substring(incidentId.length - 7)
   await createIncidentSlackChannel(channelName)
-  await inviteToChannel(channelName, witnessList)
+  await inviteToChannel(channelName, witnessList, incidentLocation)
 }
 
 function notifyPAndCChannels (payload) {
