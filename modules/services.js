@@ -28,7 +28,7 @@ async function getCreatedChannel (channelName) {
 }
 
 // Invites witnesses, P&C person to the channel
-async function inviteToChannel (channelName, stakeHolders, incidentLocation) {
+async function inviteToChannel (channelName, stakeHolders, incidentLocation, incidentId) {
   const channelId = await getCreatedChannel(channelName)
   let locationPNC = PNC_LAGOS
 
@@ -57,7 +57,7 @@ async function createIncidentChannel (payload) {
 
   const channelName = 'wire_' + incidentLocation.toLowerCase() + '_' + incidentId.substring(incidentId.length - 7)
   await createIncidentSlackChannel(channelName)
-  await inviteToChannel(channelName, witnessList, incidentLocation)
+  await inviteToChannel(channelName, witnessList, incidentLocation, incidentId)
 }
 
 function notifyPAndCChannels (payload) {
