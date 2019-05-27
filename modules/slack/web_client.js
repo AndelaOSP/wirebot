@@ -1,6 +1,7 @@
 const { WebClient } = require('@slack/client')
 
 const { chat, dialog, users } = new WebClient(process.env.SLACK_TOKEN)
+const { groups } = new WebClient(process.env.OAUTH_TOKEN)
 
 /**
  * Get Slack User Profile
@@ -37,8 +38,24 @@ function openSlackDialog (triggerId, dialogData) {
   return dialog.open({ trigger_id: triggerId, dialog: dialogData })
 }
 
+function createIncidentSlackChannel (name) {
+  return groups.create({ name })
+}
+
+function inviteUsersToChannel (user, channel) {
+  return groups.invite({ user, channel })
+}
+
+async function getAllPrivateChannels () {
+  const privateChannels = await groups.list()
+  return privateChannels
+}
+
 module.exports = {
   openSlackDialog,
   getSlackUserProfile,
-  sendSlackMessage
+  sendSlackMessage,
+  createIncidentSlackChannel,
+  inviteUsersToChannel,
+  getAllPrivateChannels
 }
