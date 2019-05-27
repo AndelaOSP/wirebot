@@ -96,15 +96,19 @@ async function sendIncidentToWireApi (payload) {
       location: { name, centre, country },
       dateOccurred,
       levelId,
-      incidentReporter
+      incidentReporter,
+      witnesses
     }
     if (witnesses.length) {
       data.witnesses = await getFormatSlackUserProfiles(witnesses)
     }
 
+    console.log("=======>", data);
+
     const { data: { data: apiResult } } = await axios({
       method: 'POST', url: `${API_URL}/api/incidents`, data
     })
+
     // remove if wire api starts returning location instead of locationIds
     apiResult.reporter[0] = {
       ...incidentReporter
