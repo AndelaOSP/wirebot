@@ -51,13 +51,18 @@ async function inviteToChannel (channelName, stakeHolders, incidentLocation, inc
 
 // Creates a private channel for the newly created incident
 async function createIncidentChannel (payload) {
+  console.log("===Create Channel Payload===", payload)
   payload.witnesses.map(witness => witnessList.push(witness.slackId))
   const incidentLocation = payload.Location.centre
   const incidentId = payload.id
 
   const channelName = 'wire_' + incidentLocation.toLowerCase() + '_' + incidentId.substring(incidentId.length - 7)
-  await createIncidentSlackChannel(channelName)
-  await inviteToChannel(channelName, witnessList, incidentLocation, incidentId)
+
+  console.log(incidentLocation, incidentId, channelName)
+  createIncidentSlackChannel(channelName)
+    .then((response) => console.log("===channel created===", response))
+    .catch((error) => console.log("===error===", error))
+  // await inviteToChannel(channelName, witnessList, incidentLocation, incidentId)
 }
 
 function notifyPAndCChannels (payload) {
@@ -147,11 +152,11 @@ async function sendIncidentToWireApi (payload) {
       data.witnesses = await getFormatSlackUserProfiles(witnesses)
     }
 
-    console.log("=======>", data);
-
-    const { data: { data: apiResult } } = await axios({
+    const response = await axios({
       method: 'POST', url: `${API_URL}/api/incidents`, data
     })
+
+    const apiResult = response.data.data
 
     // remove if wire api starts returning location instead of locationIds
     apiResult.reporter[0] = {
