@@ -133,7 +133,6 @@ function reportIncident (payload, respond) {
       .then(() => sendIncidentToWireApi(payload))
       .then((apiResponse) => {
         // eslint-disable-next-line no-unused-vars
-        console.log('===apiResponse===', apiResponse)
         const { witnesses } = apiResponse
         respond(incidentSubmittedMessage(apiResponse))
         // Uncomment the below commented out code to enable notifying tagged witnesses via Slack

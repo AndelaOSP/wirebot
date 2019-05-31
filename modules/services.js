@@ -9,7 +9,7 @@ const { witnessMessage, pAndCMessage } = require('./slack/messages')
 const { getSlackUserProfile, sendSlackMessage, createIncidentSlackChannel, inviteUsersToChannel, getAllPrivateChannels } = require('./slack/web_client')
 const { formatUserData } = require('./utils')
 
-const { API_URL, PNC_CHANNELS, PNC_KAMPALA, PNC_NAIROBI, PNC_LAGOS, PNC_KIGALI } = process.env
+const { API_URL, PNC_CHANNELS, PNC_KAMPALA, PNC_NAIROBI, PNC_LAGOS, PNC_KIGALI, CHAT_BOT_ID } = process.env
 
 /**
  * Notify Specified People And Culture Channels
@@ -20,48 +20,68 @@ const { API_URL, PNC_CHANNELS, PNC_KAMPALA, PNC_NAIROBI, PNC_LAGOS, PNC_KIGALI }
  */
 
 // Gets the details of the newly created channel
-async function getCreatedChannel (channelName) {
+async function getCreatedChannel (channelId) {
   const allChannels = await getAllPrivateChannels()
-  const wantedChannel = await allChannels.groups.filter(channel => channel.name === channelName)
+  const wantedChannel = await allChannels.groups.filter(channel => channel.id === channelId)
   return wantedChannel
 }
 
 // Invites witnesses, P&C person to the channel
 async function inviteToChannel (channelId, witnesses, incidentLocation) {
   let locationPNC = PNC_LAGOS
+  let createdChannel
 
-  if (incidentLocation.toLowerCase() === 'kampala'){
+  if (incidentLocation.toLowerCase() === 'kampala') {
     locationPNC = PNC_KAMPALA
-  } else if(incidentLocation.toLowerCase() === 'nairobi'){
+  } else if (incidentLocation.toLowerCase() === 'nairobi') {
     locationPNC = PNC_NAIROBI
-  } else if(incidentLocation.toLowerCase() === 'kigali'){
+  } else if (incidentLocation.toLowerCase() === 'kigali') {
     locationPNC = PNC_KIGALI
   }
 
   if (locationPNC) witnesses.push(locationPNC)
+  if (CHAT_BOT_ID) witnesses.push(CHAT_BOT_ID)
 
   if (witnesses.length > 0 && channelId) {
     witnesses.map(async witness => {
-      console.log("===witness===", witness)
       await inviteUsersToChannel(witness, channelId)
     })
   }
+
+  createdChannel = await getCreatedChannel(channelId)
+
+  return createdChannel
+}
+
+function formatWitnesses (witnesses) {
+  let witnessString = ''
+
+  witnesses.forEach(witness => {
+    witnessString += `${witness}, `
+  })
+
+  return witnessString.substring(0, witnessString.length - 2)
 }
 
 // Creates a private channel for the newly created incident
 async function createIncidentChannel (payload) {
   let witnessList = []
-  payload.witnesses.map(witness => witnessList.push(witness.slackId))
+  let relation = {}
+  payload.witnesses.map(witness => witnessList.push(witness.userId))
   const incidentLocation = payload.Location.centre
   const incidentId = payload.id
-
   const channelName = 'wire_' + incidentLocation.toLowerCase() + '_' + incidentId.substring(incidentId.length - 7)
-
-  console.log(incidentLocation, incidentId, channelName)
   const channel = await createIncidentSlackChannel(channelName)
-  // console.log("===channel===", channel)
-  await inviteToChannel(channel.group.id, witnessList, incidentLocation)
+  const channelDetails = await inviteToChannel(channel.group.id, witnessList, incidentLocation)
 
+  relation.incidentId = incidentId
+  relation.channelId = channel.group.id
+  relation.channelName = channelName
+  relation.channelMembers = formatWitnesses(channelDetails[0].members)
+
+  await axios({
+    method: 'POST', url: `${API_URL}/api/slack/channel`, data: relation
+  })
 }
 
 function notifyPAndCChannels (payload) {
@@ -89,7 +109,7 @@ function notifyPAndCChannels (payload) {
 function notifyWitnessesOnSlack (payload) {
   try {
     const { witnesses } = payload
-    const witnessIds = witnesses.map(value => value.slackId)
+    const witnessIds = witnesses.map(value => value.userId)
 
     return Promise.all(witnessIds.map(
       id => sendSlackMessage(id, '', witnessMessage(payload))
@@ -154,8 +174,6 @@ async function sendIncidentToWireApi (payload) {
     const response = await axios({
       method: 'POST', url: `${API_URL}/api/incidents`, data
     })
-
-    console.log('===data===', data)
 
     const apiResult = response.data.data
 

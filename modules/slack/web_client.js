@@ -46,6 +46,10 @@ function inviteUsersToChannel (user, channel) {
   return groups.invite({ user, channel })
 }
 
+function getChannelInfo (channelId) {
+  return groups.info(channelId)
+}
+
 async function getAllPrivateChannels () {
   const privateChannels = await groups.list()
   return privateChannels
@@ -53,6 +57,7 @@ async function getAllPrivateChannels () {
 
 module.exports = {
   openSlackDialog,
+  getChannelInfo,
   getSlackUserProfile,
   sendSlackMessage,
   createIncidentSlackChannel,
