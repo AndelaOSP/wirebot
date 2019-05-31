@@ -10,7 +10,6 @@ const { getSlackUserProfile, sendSlackMessage, createIncidentSlackChannel, invit
 const { formatUserData } = require('./utils')
 
 const { API_URL, PNC_CHANNELS, PNC_KAMPALA, PNC_NAIROBI, PNC_LAGOS, PNC_KIGALI } = process.env
-let witnessList = []
 
 /**
  * Notify Specified People And Culture Channels
@@ -28,11 +27,10 @@ async function getCreatedChannel (channelName) {
 }
 
 // Invites witnesses, P&C person to the channel
-async function inviteToChannel (channelName, stakeHolders, incidentLocation, incidentId) {
-  const channelId = await getCreatedChannel(channelName)
+async function inviteToChannel (channelId, witnesses, incidentLocation) {
   let locationPNC = PNC_LAGOS
 
-  if(incidentLocation.toLowerCase() === 'kampala'){
+  if (incidentLocation.toLowerCase() === 'kampala'){
     locationPNC = PNC_KAMPALA
   } else if(incidentLocation.toLowerCase() === 'nairobi'){
     locationPNC = PNC_NAIROBI
@@ -40,18 +38,19 @@ async function inviteToChannel (channelName, stakeHolders, incidentLocation, inc
     locationPNC = PNC_KIGALI
   }
 
-  await inviteUsersToChannel(locationPNC, channelId[0].id)
+  if (locationPNC) witnesses.push(locationPNC)
 
-  if (stakeHolders.length > 0 && channelId) {
-    stakeHolders.map(async stakeHolder => {
-      await inviteUsersToChannel(stakeHolder, channelId[0].id)
+  if (witnesses.length > 0 && channelId) {
+    witnesses.map(async witness => {
+      console.log("===witness===", witness)
+      await inviteUsersToChannel(witness, channelId)
     })
   }
 }
 
 // Creates a private channel for the newly created incident
 async function createIncidentChannel (payload) {
-  console.log("===Create Channel Payload===", payload)
+  let witnessList = []
   payload.witnesses.map(witness => witnessList.push(witness.slackId))
   const incidentLocation = payload.Location.centre
   const incidentId = payload.id
@@ -59,10 +58,10 @@ async function createIncidentChannel (payload) {
   const channelName = 'wire_' + incidentLocation.toLowerCase() + '_' + incidentId.substring(incidentId.length - 7)
 
   console.log(incidentLocation, incidentId, channelName)
-  createIncidentSlackChannel(channelName)
-    .then((response) => console.log("===channel created===", response))
-    .catch((error) => console.log("===error===", error))
-  // await inviteToChannel(channelName, witnessList, incidentLocation, incidentId)
+  const channel = await createIncidentSlackChannel(channelName)
+  // console.log("===channel===", channel)
+  await inviteToChannel(channel.group.id, witnessList, incidentLocation)
+
 }
 
 function notifyPAndCChannels (payload) {
@@ -155,6 +154,8 @@ async function sendIncidentToWireApi (payload) {
     const response = await axios({
       method: 'POST', url: `${API_URL}/api/incidents`, data
     })
+
+    console.log('===data===', data)
 
     const apiResult = response.data.data
 
