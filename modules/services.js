@@ -6,10 +6,10 @@ const axios = require('axios').create({
 })
 
 const { witnessMessage, pAndCMessage } = require('./slack/messages')
-const { getSlackUserProfile, sendSlackMessage } = require('./slack/web_client')
+const { getSlackUserProfile, sendSlackMessage, createIncidentSlackChannel, inviteUsersToChannel, getAllPrivateChannels } = require('./slack/web_client')
 const { formatUserData } = require('./utils')
 
-const { API_URL, PNC_CHANNELS } = process.env
+const { API_URL, PNC_CHANNELS, PNC_KAMPALA, PNC_NAIROBI, PNC_LAGOS, PNC_KIGALI, CHAT_BOT_ID } = process.env
 
 /**
  * Notify Specified People And Culture Channels
@@ -18,14 +18,82 @@ const { API_URL, PNC_CHANNELS } = process.env
  *
  * @returns {Promise} a promise containing the notification response
  */
+
+// Gets the details of the newly created channel
+async function getCreatedChannel (channelId) {
+  const allChannels = await getAllPrivateChannels()
+  const wantedChannel = await allChannels.groups.filter(channel => channel.id === channelId)
+  return wantedChannel
+}
+
+// Invites witnesses, P&C person to the channel
+async function inviteToChannel (channelId, witnesses, incidentLocation) {
+  let locationPNC = PNC_LAGOS
+  let createdChannel
+
+  if (incidentLocation.toLowerCase() === 'kampala') {
+    locationPNC = PNC_KAMPALA
+  } else if (incidentLocation.toLowerCase() === 'nairobi') {
+    locationPNC = PNC_NAIROBI
+  } else if (incidentLocation.toLowerCase() === 'kigali') {
+    locationPNC = PNC_KIGALI
+  }
+
+  if (locationPNC) witnesses.push(locationPNC)
+  if (CHAT_BOT_ID) witnesses.push(CHAT_BOT_ID)
+
+  if (witnesses.length > 0 && channelId) {
+    witnesses.map(async witness => {
+      await inviteUsersToChannel(witness, channelId)
+    })
+  }
+
+  createdChannel = await getCreatedChannel(channelId)
+
+  return createdChannel
+}
+
+function formatWitnesses (witnesses) {
+  let witnessString = ''
+
+  witnesses.forEach(witness => {
+    witnessString += `${witness}, `
+  })
+
+  return witnessString.substring(0, witnessString.length - 2)
+}
+
+// Creates a private channel for the newly created incident
+async function createIncidentChannel (payload) {
+  let witnessList = []
+  let relation = {}
+  payload.witnesses.map(witness => witnessList.push(witness.userId))
+  const incidentLocation = payload.Location.centre
+  const incidentId = payload.id
+  const channelName = 'wire_' + incidentLocation.toLowerCase() + '_' + incidentId.substring(incidentId.length - 7)
+  const channel = await createIncidentSlackChannel(channelName)
+  const channelDetails = await inviteToChannel(channel.group.id, witnessList, incidentLocation)
+
+  relation.incidentId = incidentId
+  relation.channelId = channel.group.id
+  relation.channelName = channelName
+  relation.channelMembers = formatWitnesses(channelDetails[0].members)
+
+  await axios({
+    method: 'POST', url: `${API_URL}/api/slack/channel`, data: relation
+  })
+}
+
 function notifyPAndCChannels (payload) {
   try {
-    const { reporter: [{ reporterLocation: { country } }] } = payload
-    const channel = PNC_CHANNELS.split(',').find(
-      value => value.toLowerCase().includes(country.toLowerCase())
-    ).replace(`-${country.toLowerCase()}`, '')
+    const { reporter: [{ reporterLocation: { centre } }] } = payload
+    const getChannel = () => {
+      const channel = PNC_CHANNELS.split(',').find(value => value.toLowerCase().includes(centre.split(' ')[0].toLowerCase()))
+      return channel
+    }
+    const incidentChannel = '#' + getChannel()
 
-    return sendSlackMessage(channel, '', pAndCMessage(payload))
+    return sendSlackMessage(incidentChannel, '', pAndCMessage(payload))
   } catch (error) {
     throw error
   }
@@ -41,7 +109,7 @@ function notifyPAndCChannels (payload) {
 function notifyWitnessesOnSlack (payload) {
   try {
     const { witnesses } = payload
-    const witnessIds = witnesses.map(value => value.slackId)
+    const witnessIds = witnesses.map(value => value.userId)
 
     return Promise.all(witnessIds.map(
       id => sendSlackMessage(id, '', witnessMessage(payload))
@@ -96,15 +164,19 @@ async function sendIncidentToWireApi (payload) {
       location: { name, centre, country },
       dateOccurred,
       levelId,
-      incidentReporter
+      incidentReporter,
+      witnesses
     }
     if (witnesses.length) {
       data.witnesses = await getFormatSlackUserProfiles(witnesses)
     }
 
-    const { data: { data: apiResult } } = await axios({
+    const response = await axios({
       method: 'POST', url: `${API_URL}/api/incidents`, data
     })
+
+    const apiResult = response.data.data
+
     // remove if wire api starts returning location instead of locationIds
     apiResult.reporter[0] = {
       ...incidentReporter
@@ -123,5 +195,6 @@ async function sendIncidentToWireApi (payload) {
 module.exports = {
   sendIncidentToWireApi,
   notifyWitnessesOnSlack,
-  notifyPAndCChannels
+  notifyPAndCChannels,
+  createIncidentChannel
 }

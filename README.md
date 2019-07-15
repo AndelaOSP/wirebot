@@ -38,6 +38,14 @@ On the the **Oauth & Permissions** page on the dashboard,
   - `users:read`
   - `users:read.email`
   - `users.profile:read`
+  - `channels:read`
+  - `chat:write:bot`
+  - `chat:write:user`
+  - `groups:read`
+  - `groups:write`
+  - `incoming-webhook`
+  - `usergroups:write`
+  - `team:read`
 - Click on `Save Changes`
 
 ---

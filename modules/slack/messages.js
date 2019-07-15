@@ -301,7 +301,7 @@ function witnessMessage (incident) {
   const { Location: { name, centre, country }, dateOccurred } = incident
 
   return [{
-    pretext: `<@${incident.reporter[0].slackId}> reported an incident and tagged you\
+    pretext: `<@${incident.reporter[0].userId}> reported an incident and tagged you\
  as a witness`,
     color: color.primary,
     fields: [

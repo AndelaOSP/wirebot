@@ -22,7 +22,7 @@ const {
 const app = express()
 const server = http.createServer(app)
 const slackImMiddleware = slackIM.expressMiddleware()
-const PORT = isDevMode ? 3000 : (process.env.PORT || 3000)
+const PORT = isDevMode ? 5000 : (process.env.PORT || 3000)
 
 /**
 * Event listener for HTTP server "listening" event.

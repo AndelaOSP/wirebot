@@ -5,7 +5,8 @@ const { validateDate, validateLocation, logServiceError } = require('../utils')
 const {
   sendIncidentToWireApi,
   notifyPAndCChannels,
-  notifyWitnessesOnSlack // eslint-disable-line no-unused-vars
+  notifyWitnessesOnSlack, // eslint-disable-line no-unused-vars
+  createIncidentChannel
 } = require('../services')
 const {
   reportFormDialog,
@@ -135,15 +136,14 @@ function reportIncident (payload, respond) {
         const { witnesses } = apiResponse
         respond(incidentSubmittedMessage(apiResponse))
         // Uncomment the below commented out code to enable notifying tagged witnesses via Slack
-        Promise.all([/* (witnesses && witnesses.length && notifyWitnessesOnSlack(apiResponse)), */
-          notifyPAndCChannels(apiResponse)
+        Promise.all([(witnesses && witnesses.length && notifyWitnessesOnSlack(apiResponse)),
+          notifyPAndCChannels(apiResponse), createIncidentChannel(apiResponse)
         ]).catch(logServiceError)
       })
       .catch(err => {
         respond(errorMessage)
         return logServiceError(err)
       })
-
     return void 0
   } catch (error) {
     respond(errorMessage)
