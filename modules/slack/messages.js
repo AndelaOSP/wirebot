@@ -63,7 +63,7 @@ const locationMessage = {
 const formErrorMessages = {
   dateError: {
     name: 'dateOccurred',
-    error: 'Sorry, this date is invalid!'
+    error: 'Sorry, this date is either invalid or a future date.'
   },
   locationError: {
     name: 'incidentLocation',
