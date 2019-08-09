@@ -158,10 +158,10 @@ function formatUserData (slackUser, pAndCTeam) {
  * @returns {Boolean} validity of the date true or false
  */
 function validateDate (date) {
+  const currentDate = moment(new Date(), 'DD-MM-YYYY')
   const dateRegex = /^((0[1-9])|([12]\d)|(3[01]))-((0[1-9])|(1[0-2]))-\d{4}$/
 
-  return dateRegex.test(date) && moment(date, 'mm-dd-yyyy')
-    .isBefore(moment().add(1, 'day'))
+  return dateRegex.test(date) && moment(date, 'DD-MM-YYYY').isBefore(currentDate)
 }
 
 /**
